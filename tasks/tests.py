@@ -1,3 +1,4 @@
+import importlib
 import os
 import json
 from django.test import TestCase
@@ -70,3 +71,12 @@ class TaskTests(TestCase):
         self.assertEqual(Task.objects.count(), len(data))
         for item in data:
             self.assertTrue(Task.objects.filter(title=item['title']).exists())
+    # ----------------- Test import_dataset.py -----------------
+def test_import_dataset_script(self):
+    """Test que le script import_dataset.py fonctionne correctement"""
+    script_path = os.path.join(os.path.dirname(__file__), 'import_dataset.py')
+    spec = importlib.util.spec_from_file_location("import_dataset", script_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    # Vérifie qu'au moins une tâche a été importée
+    self.assertTrue(Task.objects.exists())
