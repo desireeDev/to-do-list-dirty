@@ -4,6 +4,8 @@
 # Script de build pour le projet Django
 # -----------------------------
 
+set -e  # <- stoppe le script si une commande échoue
+
 VERSION=$1
 
 if [ -z "$VERSION" ]; then
@@ -14,17 +16,15 @@ fi
 # Chemin correct vers settings.py
 SETTINGS_FILE="todo/settings.py"
 
-# Vérifie que settings.py existe
 if [ ! -f "$SETTINGS_FILE" ]; then
     echo "Erreur: $SETTINGS_FILE non trouvé !"
-    
     exit 1
 fi
 
 # Met à jour la version dans settings.py
 sed -i "s/^VERSION = .*/VERSION = \"$VERSION\"/" "$SETTINGS_FILE"
 
-# Commit le changement (commit vide si version identique)
+# Commit le changement
 git add "$SETTINGS_FILE"
 git commit -m "chore: bump version to $VERSION" --allow-empty
 
@@ -43,16 +43,15 @@ else
     git push origin "v$VERSION"
 fi
 
-# Génère l’archive .zip
-# Exclut .git et fichiers compilés Python
+# Génère l’archive .zip si zip est installé
 if command -v zip >/dev/null 2>&1; then
     zip -r "todolist-$VERSION.zip" todo tasks manage.py -x "*.pyc" "__pycache__/*" ".git/*"
     echo "Archive générée : todolist-$VERSION.zip"
 else
-    echo "Attention : zip n'est pas installé, l'archive n'a pas été créée."
+    echo "Erreur : zip n'est pas installé, l'archive n'a pas été créée."
+    exit 1
 fi
 
-# Affiche un résumé
 echo "-------------------------"
 echo "Build terminé pour la version $VERSION"
 git log -1 --oneline
