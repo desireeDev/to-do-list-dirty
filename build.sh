@@ -4,48 +4,65 @@
 # Script de build pour le projet Django
 # -----------------------------
 
-# Récupère la version depuis le paramètre
+set -e  # Stoppe le script si une commande échoue
+
 VERSION=$1
 
 if [ -z "$VERSION" ]; then
-    echo "Usage: ./build.sh 1.0.1"
+    echo "Usage: ./build.sh <version>"
     exit 1
 fi
 
-# Chemin correct vers settings.py
+# 1️⃣ Linter + tests + coverage avant la version
+echo "=== Lancement du linter ==="
+flake8 tasks manage.py || exit 1
+
+echo "=== Lancement des tests Django ==="
+pipenv run python manage.py test || exit 1
+
+echo "=== Lancement de la couverture de tests ==="
+pipenv run coverage run --source=tasks manage.py test
+pipenv run coverage report
+pipenv run coverage html
+
+# 2️⃣ Met à jour la version dans settings.py
 SETTINGS_FILE="todo/settings.py"
 
-# Vérifie que settings.py existe
 if [ ! -f "$SETTINGS_FILE" ]; then
     echo "Erreur: $SETTINGS_FILE non trouvé !"
     exit 1
 fi
 
-# Met à jour la version dans settings.py
 sed -i "s/^VERSION = .*/VERSION = \"$VERSION\"/" "$SETTINGS_FILE"
 
-# Commit le changement
 git add "$SETTINGS_FILE"
-git commit -m "chore: bump version to $VERSION"
+git commit -m "chore: bump version to $VERSION" --allow-empty
 
-# Optionnel: mise à jour du changelog si présent
+# 3️⃣ Mise à jour du changelog si présent
 if [ -f "CHANGELOG.md" ]; then
     echo -e "## Version $VERSION - $(date +%Y-%m-%d)\n- Description des changements ici\n" | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
     git add CHANGELOG.md
-    git commit -m "docs: update changelog for $VERSION"
+    git commit -m "docs: update changelog for $VERSION" --allow-empty
 fi
 
-# Tag Git avec préfixe v
-git tag -a "v$VERSION" -m "Version $VERSION"
-git push origin "v$VERSION"
+# 4️⃣ Tag Git
+if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+    echo "Le tag v$VERSION existe déjà, utilisation du tag existant."
+else
+    git tag -a "v$VERSION" -m "Version $VERSION"
+    git push origin "v$VERSION"
+fi
 
-# Génère l’archive .zip
-# Exclut .git et fichiers .pyc
-zip -r "todolist-$VERSION.zip" todo tasks manage.py -x "*.pyc" "__pycache__/*" ".git/*"
+# 5️⃣ Génère l’archive .zip
+if command -v zip >/dev/null 2>&1; then
+    zip -r "todolist-$VERSION.zip" todo tasks manage.py -x "*.pyc" "__pycache__/*" ".git/*"
+    echo "Archive générée : todolist-$VERSION.zip"
+else
+    echo "Erreur : zip n'est pas installé, l'archive n'a pas été créée."
+    exit 1
+fi
 
-# Affiche un résumé
 echo "-------------------------"
 echo "Build terminé pour la version $VERSION"
 git log -1 --oneline
-echo "Archive générée : todolist-$VERSION.zip"
 echo "-------------------------"
