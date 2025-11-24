@@ -1,28 +1,28 @@
-from django.shortcuts import render, redirect
-# from django.http import HttpResponse  # Import inutile, supprimé pour éviter F401
+from django.shortcuts import render, redirect, get_object_or_404
+from todo import settings  # Pour accéder à la version de l'application
+from .models import Task   # Import du modèle Task
+from .forms import TaskForm  # Import du formulaire TaskForm
 
-from todo import settings
-from .models import Task  # Import explicite du modèle Task
-from .forms import TaskForm  # Import explicite du formulaire TaskForm
-
-# Vue principale affichant la liste des tâches et le formulaire d'ajout
+# -------------------------------------------------------------------
+# Vue principale affichant la liste des tâches et permettant l'ajout
+# -------------------------------------------------------------------
 def index(request):
-    # Récupère toutes les tâches de la base de données
+    # Récupère toutes les tâches de la base
     tasks = Task.objects.all()
 
-    # Instancie un formulaire vide pour ajouter une nouvelle tâche
+    # Instancie un formulaire vide pour l'ajout d'une tâche
     form = TaskForm()
 
     if request.method == 'POST':
-        # Si le formulaire est soumis, on le remplit avec les données POST
+        # Si le formulaire est soumis, le remplir avec les données POST
         form = TaskForm(request.POST)
         if form.is_valid():
-            # Si le formulaire est valide, on sauvegarde la nouvelle tâche
+            # Sauvegarde la tâche si le formulaire est valide
             form.save()
         # Redirection vers la page principale après ajout
         return redirect('/')
 
-    # Contexte pour le template : tâches, formulaire et version de l'application
+    # Contexte passé au template : liste des tâches, formulaire et version de l'app
     context = {
         'tasks': tasks,
         'form': form,
@@ -31,19 +31,23 @@ def index(request):
     return render(request, 'tasks/list.html', context)
 
 
+# -------------------------------------------------------------------
 # Vue pour mettre à jour une tâche existante
+# -------------------------------------------------------------------
 def updateTask(request, pk):
-    # Récupère la tâche à modifier par son id
-    task = Task.objects.get(id=pk)
-    # Instancie le formulaire avec les données de la tâche existante
+    # Récupère la tâche par ID ou renvoie une 404 si elle n'existe pas
+    task = get_object_or_404(Task, id=pk)
+
+    # Pré-remplit le formulaire avec les données de la tâche existante
     form = TaskForm(instance=task)
 
     if request.method == "POST":
-        # Remplit le formulaire avec les nouvelles données POST
+        # Met à jour la tâche avec les nouvelles données du formulaire
         form = TaskForm(request.POST, instance=task)
         if form.is_valid():
-            # Sauvegarde les modifications si le formulaire est valide
+            # Sauvegarde les modifications
             form.save()
+            # Redirection vers la page principale après mise à jour
             return redirect('/')
 
     # Contexte pour le template : formulaire pré-rempli
@@ -51,13 +55,15 @@ def updateTask(request, pk):
     return render(request, 'tasks/update_task.html', context)
 
 
+# -------------------------------------------------------------------
 # Vue pour supprimer une tâche
+# -------------------------------------------------------------------
 def deleteTask(request, pk):
-    # Récupère la tâche à supprimer par son id
-    item = Task.objects.get(id=pk)
+    # Récupère la tâche à supprimer ou renvoie une 404 si l'ID est invalide
+    item = get_object_or_404(Task, id=pk)
 
     if request.method == "POST":
-        # Supprime l'objet et redirige vers la page principale
+        # Supprime la tâche et redirige vers la page principale
         item.delete()
         return redirect('/')
 
