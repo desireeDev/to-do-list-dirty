@@ -1,3 +1,4 @@
-from django.test import TestCase
+# Fichier tests.py
+# Aucun import nécessaire pour le moment, car aucun test n'est défini
 
-# Create your tests here.
+
