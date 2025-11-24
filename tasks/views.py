@@ -1,5 +1,7 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
+
+from todo import settings
 from .models import *
 from .forms import *
 # Create your views here.
@@ -14,10 +16,12 @@ def index(request):
 			#adds to the database if valid
 			form.save()
 		return redirect('/')
-
-	context= {'tasks':tasks,'form':form}
+#Context for the template
+	context= {'tasks':tasks,
+		     'form':form,
+			 'version': settings.VERSION  }
 	return render(request, 'tasks/list.html',context)
-
+#Vue pour mettre a jour une tache
 def updateTask(request,pk):
 	task = Task.objects.get(id=pk)
 	form = TaskForm(instance=task)
@@ -31,7 +35,7 @@ def updateTask(request,pk):
 
 	context = {'form':form}
 	return render(request, 'tasks/update_task.html',context)
-
+#Vue pour supprimer une tache
 def deleteTask(request,pk):
 	item = Task.objects.get(id=pk)
 
