@@ -1,0 +1,40 @@
+Running tests...
+Courtesy Notice:
+Pipenv found itself running within a virtual environment,  so it will 
+automatically use that environment, instead of  creating its own for any 
+project. You can set
+PIPENV_IGNORE_VIRTUALENVS=1 to force pipenv to ignore that environment and 
+create  its own instead.
+You can set PIPENV_VERBOSITY=-1 to suppress this warning.
+Traceback (most recent call last):
+  File "C:\Users\synti\Desktop\ESIEE-IT\M2\Qualite Logicielle\to-do-list-dirty\manage.py", line 22, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\synti\Desktop\ESIEE-IT\M2\Qualite Logicielle\to-do-list-dirty\manage.py", line 18, in main
+    execute_from_command_line(sys.argv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\synti\Desktop\ESIEE-IT\M2\Qualite Logicielle\to-do-list-dirty\.venv\Lib\site-packages\django\core\management\__init__.py", line 419, in execute_from_command_line
+    utility.execute()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\synti\Desktop\ESIEE-IT\M2\Qualite Logicielle\to-do-list-dirty\.venv\Lib\site-packages\django\core\management\__init__.py", line 395, in execute
+    django.setup()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\synti\Desktop\ESIEE-IT\M2\Qualite Logicielle\to-do-list-dirty\.venv\Lib\site-packages\django\__init__.py", line 16, in setup
+    from django.urls import set_script_prefix
+  File "C:\Users\synti\Desktop\ESIEE-IT\M2\Qualite Logicielle\to-do-list-dirty\.venv\Lib\site-packages\django\urls\__init__.py", line 1, in <module>
+    from .base import (
+    ...<3 lines>...
+    )
+  File "C:\Users\synti\Desktop\ESIEE-IT\M2\Qualite Logicielle\to-do-list-dirty\.venv\Lib\site-packages\django\urls\base.py", line 8, in <module>
+    from .exceptions import NoReverseMatch, Resolver404
+  File "C:\Users\synti\Desktop\ESIEE-IT\M2\Qualite Logicielle\to-do-list-dirty\.venv\Lib\site-packages\django\urls\exceptions.py", line 1, in <module>
+    from django.http import Http404
+  File "C:\Users\synti\Desktop\ESIEE-IT\M2\Qualite Logicielle\to-do-list-dirty\.venv\Lib\site-packages\django\http\__init__.py", line 2, in <module>
+    from django.http.request import (
+        HttpRequest, QueryDict, RawPostDataException, UnreadablePostError,
+    )
+  File "C:\Users\synti\Desktop\ESIEE-IT\M2\Qualite Logicielle\to-do-list-dirty\.venv\Lib\site-packages\django\http\request.py", line 1, in <module>
+    import cgi
+ModuleNotFoundError: No module named 'cgi'
+C:\Users\synti\Desktop\ESIEE-IT\M2\Qualite Logicielle\to-do-list-dirty\.venv\Lib\site-packages\coverage\control.py:950: CoverageWarning: No data was collected. (no-data-collected); see https://coverage.readthedocs.io/en/7.12.0/messages.html#warning-no-data-collected
+  self._warn("No data was collected.", slug="no-data-collected")
