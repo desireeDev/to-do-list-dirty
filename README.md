@@ -253,11 +253,6 @@ git push origin feature/<NomFeature>
 
 4. Ouvrir une Pull Request
 
----
-
-
----
-
 ## Dépannage
 
 ### Problèmes liés aux versions de Django et CGI/WSGI
