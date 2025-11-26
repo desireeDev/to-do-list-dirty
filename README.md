@@ -318,4 +318,4 @@ Après cette série d’actions, les erreurs liées à CGI/WSGI ont disparu et l
 
 Pour toute question ou rapport de bug, ouvrir une issue sur le dépôt GitHub.
 
--
+
