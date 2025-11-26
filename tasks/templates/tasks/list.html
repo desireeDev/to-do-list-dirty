@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
 
 <style>
     body{
@@ -8,6 +8,17 @@
         line-height: 1.5;
     }
 
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+        color: #333;
+    }
+
     input{
         width: 100%;
         padding: 12px 20px;
@@ -15,6 +26,7 @@
         box-sizing: border-box;
         border: 2px solid #ddd;
         border-radius: 4px;
+        font-size: 16px;
     }
 
     input:focus {
@@ -32,6 +44,10 @@
         border: none;
         padding: 12px 24px;
         font-weight: bold;
+        width: 100%;
+        font-size: 16px;
+        border-radius: 4px;
+        cursor: pointer;
     }
 
     .submit:hover, .submit:focus {
@@ -49,7 +65,7 @@
     }
 
     .item-row{
-        background-color: #5a2d9c; /* Meilleur contraste */
+        background-color: #5a2d9c;
         margin: 10px 0;
         padding: 15px;
         border-radius: 6px;
@@ -64,10 +80,11 @@
     .btn-info{
         background-color: #0066cc;
         border-color: #0052a3;
+        color: white;
     }
 
     .btn-danger{
-        background-color: #cc5500; /* Meilleur contraste */
+        background-color: #cc5500;
         border-color: #a34200;
         color: white;
     }
@@ -80,13 +97,13 @@
     .task-text {
         flex-grow: 1;
         margin: 0;
+        font-weight: 500;
     }
 
-    /* Amélioration du titre */
     .main-title {
         text-align: center;
-        color: #ff6b35; /* Meilleur contraste */
-        font-size: 3rem;
+        color: #e5533d; /* Contraste encore amélioré */
+        font-size: 2.5rem; /* Légèrement réduit */
         font-weight: bold;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         margin: 20px 0;
@@ -94,13 +111,27 @@
 
     .version-info {
         text-align: center;
-        color: white;
+        color: #ffffff;
+        background-color: rgba(0, 0, 0, 0.7);
         font-size: 1rem;
-        background-color: rgba(0,0,0,0.3);
-        padding: 5px;
+        padding: 8px 16px;
         border-radius: 4px;
         display: inline-block;
         margin: 0 auto 20px;
+        font-weight: bold;
+    }
+
+    .form-text {
+        color: #666;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        color: #666;
+        padding: 2rem;
+        font-style: italic;
     }
 
     .sr-only {
@@ -116,9 +147,8 @@
     }
 </style>
 
-<!-- Structure sémantique améliorée -->
 <header role="banner">
-    <h1 class="main-title" aria-label="TO DO LIST Application">TO DO LIST</h1>
+    <h1 class="main-title">TO DO LIST</h1>
 </header>
 
 <main role="main">
@@ -129,33 +159,42 @@
     </div>
 
     <div class="center-column">
-        <!-- Formulaire accessible -->
-        <form method="POST" action="/" role="form" aria-labelledby="form-title">
+        <form method="POST" action="/" role="form">
             {% csrf_token %}
-            <h2 id="form-title" class="sr-only">Ajouter une nouvelle tâche</h2>
             
-            <label for="id_title" class="sr-only">Titre de la tâche</label>
-            {{form.title}}
+            <div class="form-group">
+                <label for="id_title" class="form-label">Nouvelle tâche</label>
+                <input type="text" 
+                       name="title" 
+                       id="id_title" 
+                       class="form-control" 
+                       placeholder="Que souhaitez-vous accomplir ?"
+                       aria-describedby="title_help"
+                       required>
+                <small id="title_help" class="form-text">
+                    Saisissez le titre de votre nouvelle tâche
+                </small>
+            </div>
             
-            <input class="btn btn-info submit" type="submit" name="Create Task" 
-                   value="Ajouter la tâche" aria-label="Créer une nouvelle tâche">
+            <button type="submit" class="submit">
+                Ajouter la tâche
+            </button>
         </form>
 
-        <!-- Liste des tâches -->
-        <section aria-labelledby="tasks-title">
-            <h2 id="tasks-title" class="sr-only">Liste des tâches</h2>
+        <section aria-labelledby="tasks-heading">
+            <h2 id="tasks-heading" class="sr-only">Liste des tâches</h2>
             
-            <div class="todo-list" role="list">
+            <div role="list">
             {% for task in tasks %}
                 <div class="item-row" role="listitem">
                     <a class="btn btn-sm btn-info" 
                        href="{% url 'update_task' task.id %}" 
-                       aria-label="Modifier la tâche {{ task.title }}">
+                       aria-label="Modifier la tâche '{{ task.title }}'">
                         Modifier
                     </a>
                     <a class="btn btn-sm btn-danger" 
                        href="{% url 'delete' task.id %}" 
-                       aria-label="Supprimer la tâche {{ task.title }}">
+                       aria-label="Supprimer la tâche '{{ task.title }}'">
                         Supprimer
                     </a>
                     
@@ -168,7 +207,7 @@
                     </span>
                 </div>
             {% empty %}
-                <p class="text-center">Aucune tâche pour le moment.</p>
+                <p class="empty-state" role="status">Aucune tâche pour le moment. Ajoutez votre première tâche !</p>
             {% endfor %}
             </div>
         </section>

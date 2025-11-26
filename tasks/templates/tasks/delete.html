@@ -3,7 +3,7 @@
 <style>
     body {
         background-color: #3a86ff;
-        color: #333;
+        color: #212529; /* Contraste amélioré */
         font-size: 16px;
         line-height: 1.5;
         margin: 0;
@@ -22,35 +22,38 @@
 
     .page-title {
         color: #5a2d9c;
-        font-size: 1.5rem;
-        font-weight: bold;
+        font-size: 1.75rem; /* Plus grand */
+        font-weight: 700; /* Plus épais */
         margin-bottom: 1.5rem;
     }
 
     .warning-message {
         background-color: #fff3cd;
-        border: 1px solid #ffeaa7;
+        border: 2px solid #ffc107; /* Bordure plus visible */
         border-radius: 6px;
         padding: 15px;
         margin: 20px 0;
         color: #856404;
         text-align: left;
+        font-weight: 600; /* Plus épais */
     }
 
     .warning-icon {
         font-weight: bold;
-        color: #ff6b6b;
+        color: #dc3545; /* Rouge pour plus de visibilité */
         margin-right: 8px;
+        font-size: 1.2em;
     }
 
     .task-to-delete {
         background-color: #f8f9fa;
-        border: 2px solid #e9ecef;
+        border: 2px solid #dc3545; /* Bordure rouge */
         border-radius: 6px;
         padding: 15px;
-        margin: 15px 0;
-        font-weight: bold;
+        margin: 20px 0;
+        font-weight: 700; /* Plus épais */
         color: #dc3545;
+        font-size: 1.1rem;
     }
 
     .btn-confirm {
@@ -60,47 +63,64 @@
         padding: 12px 24px;
         border-radius: 6px;
         font-size: 16px;
-        font-weight: bold;
+        font-weight: 700; /* Plus épais */
         cursor: pointer;
         margin: 5px;
-        min-width: 120px;
+        min-width: 140px; /* Légèrement plus large */
+        border: 2px solid transparent;
     }
 
     .btn-confirm:hover,
     .btn-confirm:focus {
         background-color: #c82333;
-        outline: 3px solid rgba(220, 53, 69, 0.3);
+        outline: 3px solid rgba(220, 53, 69, 0.5);
+        border-color: #bd2130;
     }
 
     .btn-cancel {
-        background-color: #06d6a0;
+        background-color: #28a745; /* Vert Bootstrap standard */
         color: white;
         border: none;
         padding: 12px 24px;
         border-radius: 6px;
         font-size: 16px;
-        font-weight: bold;
+        font-weight: 700; /* Plus épais */
         cursor: pointer;
         text-decoration: none;
         display: inline-block;
         margin: 5px;
-        min-width: 120px;
+        min-width: 140px;
+        border: 2px solid transparent;
     }
 
     .btn-cancel:hover,
     .btn-cancel:focus {
-        background-color: #05b388;
-        outline: 3px solid rgba(6, 214, 160, 0.3);
+        background-color: #218838;
+        outline: 3px solid rgba(40, 167, 69, 0.5);
         text-decoration: none;
         color: white;
+        border-color: #1e7e34;
     }
 
     .button-group {
         display: flex;
         justify-content: center;
-        gap: 15px;
-        margin-top: 2rem;
+        gap: 20px; /* Plus d'espace */
+        margin-top: 2.5rem;
         flex-wrap: wrap;
+    }
+
+    .confirmation-text {
+        color: #212529; /* Contraste assuré */
+        font-size: 1.1rem;
+        margin: 1.5rem 0;
+        font-weight: 600;
+    }
+
+    .task-identifier {
+        font-weight: 700;
+        color: #212529;
+        margin: 1rem 0;
     }
 
     .sr-only {
@@ -125,54 +145,88 @@
         .button-group {
             flex-direction: column;
             align-items: center;
+            gap: 15px;
         }
         
         .btn-confirm,
         .btn-cancel {
             width: 100%;
-            max-width: 200px;
+            max-width: 250px;
+            min-width: auto;
+        }
+        
+        .page-title {
+            font-size: 1.5rem;
         }
     }
 </style>
 
 <div class="center-column" role="main" aria-labelledby="page-title">
-    <h1 id="page-title" class="page-title">Supprimer la tâche</h1>
+    <h1 id="page-title" class="page-title">Confirmation de suppression</h1>
     
-    <div class="warning-message" role="alert" aria-live="polite">
+    <p class="confirmation-text" id="main-description">
+        Vous êtes sur le point de supprimer définitivement une tâche.
+    </p>
+    
+    <div class="warning-message" role="alert" aria-labelledby="warning-heading">
+        <h2 id="warning-heading" class="sr-only">Avertissement important</h2>
         <span class="warning-icon" aria-hidden="true">⚠</span>
-        <strong>Attention :</strong> Cette action est irréversible. La tâche sera définitivement supprimée.
+        <strong>Action irréversible :</strong> Cette suppression est définitive et ne peut pas être annulée.
     </div>
 
-    <div class="task-to-delete">
-        <span class="sr-only">Tâche à supprimer : </span>
+    <div class="task-identifier">
+        <strong>Tâche concernée :</strong>
+    </div>
+    
+    <div class="task-to-delete" aria-describedby="task-description">
         "{{ item }}"
     </div>
+    
+    <p id="task-description" class="sr-only">
+        Tâche intitulée : {{ item }}
+    </p>
 
-    <form method="POST" action="{% url 'delete' item.id %}" role="form">
+    <form method="POST" action="{% url 'delete' item.id %}" role="form" aria-labelledby="form-title">
+        <h2 id="form-title" class="sr-only">Actions de confirmation</h2>
         {% csrf_token %}
         
         <div class="button-group">
             <button type="submit" 
                     class="btn-confirm" 
-                    aria-describedby="confirmation-description">
-                Confirmer la suppression
+                    aria-describedby="confirm-instruction">
+                Oui, supprimer
             </button>
             
             <a href="{% url 'list' %}" 
                class="btn-cancel"
-               aria-label="Retour à la liste des tâches sans supprimer">
-                Annuler
+               role="button"
+               aria-describedby="cancel-instruction">
+                Non, annuler
             </a>
         </div>
     </form>
 
-    <p id="confirmation-description" class="sr-only">
-        Appuyez sur Entrée pour confirmer la suppression définitive de la tâche "{{ item }}"
-    </p>
+    <div class="sr-only" aria-live="polite">
+        <p id="confirm-instruction">
+            Bouton de confirmation : supprime définitivement la tâche "{{ item }}"
+        </p>
+        <p id="cancel-instruction">
+            Bouton d'annulation : retourne à la liste des tâches sans effectuer de suppression
+        </p>
+    </div>
 </div>
 
-<!-- Message pour les technologies d'assistance -->
-<div class="sr-only" aria-live="assertive" aria-atomic="true">
-    Page de confirmation de suppression de tâche. Vous êtes sur le point de supprimer "{{ item }}". 
-    Utilisez le bouton Confirmer pour supprimer ou Annuler pour retourner à la liste.
-</div>
+<!-- Message contextuel pour les technologies d'assistance -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const taskName = "{{ item }}";
+        const alertMessage = `Page de confirmation de suppression. Vous êtes sur le point de supprimer la tâche : ${taskName}. Cette action est irréversible. Utilisez le bouton "Oui, supprimer" pour confirmer ou "Non, annuler" pour retourner à la liste.`;
+        
+        const liveRegion = document.createElement('div');
+        liveRegion.setAttribute('aria-live', 'polite');
+        liveRegion.setAttribute('aria-atomic', 'true');
+        liveRegion.className = 'sr-only';
+        liveRegion.textContent = alertMessage;
+        document.body.appendChild(liveRegion);
+    });
+</script>

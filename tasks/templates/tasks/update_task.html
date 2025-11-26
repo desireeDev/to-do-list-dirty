@@ -3,9 +3,11 @@
 <style>
     body {
         background-color: #3a86ff;
-        color: #333;
+        color: #212529; /* Couleur de texte plus contrastée */
         font-size: 16px;
         line-height: 1.5;
+        margin: 0;
+        padding: 20px;
     }
 
     .center-column {
@@ -24,22 +26,24 @@
     .form-group label {
         display: block;
         margin-bottom: 0.5rem;
-        font-weight: bold;
-        color: #333;
+        font-weight: 600; /* Plus épais pour meilleur contraste */
+        color: #212529; /* Noir plus prononcé */
     }
 
     .form-control {
         width: 100%;
         padding: 12px;
-        border: 2px solid #ddd;
+        border: 2px solid #6c757d;
         border-radius: 4px;
         font-size: 16px;
         box-sizing: border-box;
+        background-color: #fff;
     }
 
     .form-control:focus {
         border-color: #0066cc;
         outline: 3px solid rgba(0, 102, 204, 0.3);
+        background-color: #fff;
     }
 
     .btn-primary {
@@ -49,7 +53,7 @@
         padding: 12px 24px;
         border-radius: 4px;
         font-size: 16px;
-        font-weight: bold;
+        font-weight: 600;
         cursor: pointer;
         width: 100%;
         margin-top: 10px;
@@ -64,53 +68,99 @@
     .page-title {
         text-align: center;
         color: #5a2d9c;
-        font-size: 1.5rem;
-        font-weight: bold;
+        font-size: 1.75rem; /* Légèrement plus grand */
+        font-weight: 700; /* Plus épais */
         margin-bottom: 2rem;
     }
 
     .checkbox-group {
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin: 1rem 0;
+        gap: 12px;
+        margin: 1.5rem 0;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 6px;
     }
 
     .checkbox-group input[type="checkbox"] {
         width: 20px;
         height: 20px;
+        accent-color: #0066cc; /* Couleur personnalisée pour le checkbox */
     }
 
     .checkbox-group label {
         margin-bottom: 0;
-        font-weight: normal;
+        font-weight: 600;
+        color: #212529;
+        cursor: pointer;
     }
 
     .back-link {
         display: block;
         text-align: center;
-        margin-top: 1rem;
+        margin-top: 2rem;
         color: #0066cc;
         text-decoration: none;
+        font-weight: 600;
+        padding: 8px 16px;
+        border: 2px solid transparent;
+        border-radius: 4px;
     }
 
     .back-link:hover,
     .back-link:focus {
         text-decoration: underline;
         outline: 2px solid rgba(0, 102, 204, 0.3);
-        border-radius: 2px;
+        background-color: #f8f9fa;
+    }
+
+    .form-text {
+        color: #495057; /* Plus sombre pour meilleur contraste */
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        padding: 12px;
+        border-radius: 4px;
+        margin-top: 0.5rem;
+    }
+
+    .required-field::after {
+        content: " *";
+        color: #dc3545;
+    }
+
+    @media (max-width: 650px) {
+        .center-column {
+            width: 95%;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        
+        body {
+            padding: 10px;
+        }
     }
 </style>
 
 <div class="center-column" role="main" aria-labelledby="page-title">
     <h1 id="page-title" class="page-title">Modifier la tâche</h1>
 
-    <form method="POST" action="" role="form">
+    <form method="POST" action="" role="form" aria-describedby="form-description">
         {% csrf_token %}
+        
+        <p id="form-description" class="sr-only">
+            Formulaire de modification de tâche. Remplissez le titre et indiquez si la tâche est complétée.
+        </p>
         
         <!-- Champ titre avec label accessible -->
         <div class="form-group">
-            <label for="id_title">Titre de la tâche *</label>
+            <label for="id_title" class="required-field">Titre de la tâche</label>
             <input type="text" 
                    name="title" 
                    id="id_title" 
@@ -118,14 +168,15 @@
                    value="{{ form.title.value|default:'' }}" 
                    required 
                    aria-required="true"
-                   aria-describedby="title_help">
-            <small id="title_help" class="form-text text-muted">
-                Saisissez le titre de votre tâche
+                   aria-describedby="title_help"
+                   placeholder="Saisissez le titre de la tâche">
+            <small id="title_help" class="form-text">
+                Entrez le nouveau titre pour votre tâche
             </small>
             {% if form.title.errors %}
-                <div class="alert alert-danger" role="alert">
+                <div class="alert alert-danger" role="alert" aria-live="polite">
                     {% for error in form.title.errors %}
-                        {{ error }}
+                        <strong>Erreur :</strong> {{ error }}
                     {% endfor %}
                 </div>
             {% endif %}
@@ -133,32 +184,40 @@
 
         <!-- Champ statut avec label accessible -->
         <div class="form-group">
-            <div class="checkbox-group">
-                <input type="checkbox" 
-                       name="complete" 
-                       id="id_complete" 
-                       {% if form.complete.value %}checked{% endif %}
-                       aria-describedby="complete_help">
-                <label for="id_complete">Tâche complétée</label>
-            </div>
-            <small id="complete_help" class="form-text text-muted">
+            <fieldset>
+                <legend class="sr-only">Statut de la tâche</legend>
+                <div class="checkbox-group">
+                    <input type="checkbox" 
+                           name="complete" 
+                           id="id_complete" 
+                           {% if form.complete.value %}checked{% endif %}
+                           aria-describedby="complete_help">
+                    <label for="id_complete">Tâche complétée</label>
+                </div>
+            </fieldset>
+            <small id="complete_help" class="form-text">
                 Cochez cette case si la tâche est terminée
             </small>
             {% if form.complete.errors %}
-                <div class="alert alert-danger" role="alert">
+                <div class="alert alert-danger" role="alert" aria-live="polite">
                     {% for error in form.complete.errors %}
-                        {{ error %}
+                        <strong>Erreur :</strong> {{ error }}
                     {% endfor %}
                 </div>
             {% endif %}
         </div>
 
-        <button type="submit" class="btn btn-primary" aria-label="Mettre à jour la tâche">
+        <button type="submit" class="btn btn-primary">
             Mettre à jour la tâche
         </button>
     </form>
 
-    <a href="{% url 'list' %}" class="back-link" aria-label="Retour à la liste des tâches">
-        ← Retour à la liste
+    <a href="{% url 'list' %}" class="back-link">
+        ← Retour à la liste des tâches
     </a>
+</div>
+
+<!-- Contenu pour les technologies d'assistance -->
+<div class="sr-only" aria-live="polite" aria-atomic="true">
+    Page de modification de tâche. Utilisez le formulaire pour mettre à jour les détails de votre tâche.
 </div>
