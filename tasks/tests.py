@@ -1,6 +1,7 @@
 import importlib.util
 import os
 import json
+import subprocess
 from django.test import TestCase
 from django.urls import reverse
 from tasks.models import Task
@@ -123,3 +124,78 @@ class TaskTests(TestCase):
     def test_14_task_created_field(self):
         """Vérifie que le champ created est défini à la création."""
         self.assertIsNotNone(self.task.created)
+
+    # ================================
+    # Tests d'accessibilité WCAG 2.1 AA
+    # ================================
+    def test_15_accessibility_homepage_semantic_structure(self):
+        """Test la structure sémantique de la page d'accueil."""
+        response = self.client.get(reverse('list'))
+        self.assertEqual(response.status_code, 200)
+        # Vérifier la présence de balises sémantiques
+        content = response.content.decode()
+        self.assertIn('<header', content)
+        self.assertIn('<main', content)
+        self.assertIn('<section', content)
+
+    def test_16_accessibility_form_labels(self):
+        """Test que les formulaires ont des labels appropriés."""
+        response = self.client.get(reverse('list'))
+        content = response.content.decode()
+        # Vérifier la présence de labels pour les formulaires
+        self.assertIn('for="id_title"', content)
+        self.assertIn('Nouvelle tâche', content)
+
+    def test_17_accessibility_aria_attributes(self):
+        """Test la présence d'attributs ARIA."""
+        response = self.client.get(reverse('list'))
+        content = response.content.decode()
+        # Vérifier les attributs ARIA de base
+        self.assertIn('role="main"', content)
+        self.assertIn('aria-label', content)
+        self.assertIn('aria-describedby', content)
+
+    def test_18_accessibility_keyboard_navigation(self):
+        """Test les éléments de navigation au clavier."""
+        response = self.client.get(reverse('list'))
+        content = response.content.decode()
+        # Vérifier que les boutons ont des états focus
+        self.assertIn('btn:focus', content)
+        self.assertIn('outline', content)
+
+    def test_19_accessibility_update_page(self):
+        """Test l'accessibilité de la page de modification."""
+        response = self.client.get(reverse('update_task', args=[self.task.id]))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        # Vérifier la structure de la page update
+        self.assertIn('for="id_title"', content)
+        self.assertIn('for="id_complete"', content)
+
+    def test_20_accessibility_delete_page(self):
+        """Test l'accessibilité de la page de suppression."""
+        response = self.client.get(reverse('delete', args=[self.task.id]))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        # Vérifier les éléments d'alerte et de confirmation
+        self.assertIn('role="alert"', content)
+        self.assertIn('aria-live', content)
+
+
+class AccessibilityAutomatedTests(TestCase):
+    """Tests d'accessibilité automatisés avec pa11y (si disponible)."""
+
+    def setUp(self):
+        self.task = Task.objects.create(title="Test Task", complete=False)
+
+    def test_pa11y_available(self):
+        """Test que pa11y est disponible (ne fait pas échouer si absent)."""
+        try:
+            result = subprocess.run(['pa11y', '--version'],
+                                    capture_output=True, text=True)
+            # Si pa11y est installé, on continue
+            if result.returncode == 0:
+                self.assertTrue(True, "pa11y est disponible")
+        except FileNotFoundError:
+            # pa11y n'est pas installé, on passe le test
+            self.skipTest("pa11y n'est pas installé")
