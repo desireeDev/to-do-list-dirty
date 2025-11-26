@@ -171,4 +171,4 @@ Ce README met en avant :
 - ✅ **Conformité WCAG 2.1 AA** en évidence
 - ✅ **Gestion des versions** avec Conventional Commits
 
-**Votre application est maintenant professionnelle et prête pour la production !** 🚀
+**Notre application est maintenant professionnelle et prête pour la production !** 
