@@ -2,10 +2,6 @@
 
 Application de gestion de tâches développée avec **Django** et conçue pour être accessible (WCAG 2.1 AA), responsive et prête pour la production.
 
-<p align="center">
-  <img src="image.png" alt="Capture d'écran : Liste des tâches" style="max-width:100%; height:auto;" />
-</p>
-
 ## Sommaire
 
 1. [Aperçu](#aper%C3%A7u)
@@ -19,7 +15,7 @@ Application de gestion de tâches développée avec **Django** et conçue pour �
 9. [Scripts utiles](#scripts-utiles)
 10. [Technologies](#technologies)
 11. [Contribution](#contribution)
-12. [Licence](#licence)
+
 
 ---
 
@@ -257,14 +253,6 @@ git push origin feature/<NomFeature>
 
 4. Ouvrir une Pull Request
 
----
-
-## Licence
-
-Projet sous licence **MIT** — voir `LICENSE`.
-
----
-
 ## Dépannage
 
 ### Problèmes liés aux versions de Django et CGI/WSGI
@@ -300,7 +288,7 @@ Les versions récentes de Django ont progressivement supprimé ou modifié certa
    pipenv install --dev
    ```
 
-3. Forçage d'une version stable et compatible de Django :
+3. Forçage d'une version stable et compatible de Django:
 
    ```bash
    pipenv install "django>=4.2,<4.3"
@@ -330,4 +318,4 @@ Après cette série d’actions, les erreurs liées à CGI/WSGI ont disparu et l
 
 Pour toute question ou rapport de bug, ouvrir une issue sur le dépôt GitHub.
 
--
+
