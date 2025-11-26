@@ -15,7 +15,7 @@ Application de gestion de tâches développée avec **Django** et conçue pour �
 9. [Scripts utiles](#scripts-utiles)
 10. [Technologies](#technologies)
 11. [Contribution](#contribution)
-12. [Licence](#licence)
+
 
 ---
 
@@ -255,9 +255,6 @@ git push origin feature/<NomFeature>
 
 ---
 
-## Licence
-
-Projet sous licence **MIT** — voir `LICENSE`.
 
 ---
 
