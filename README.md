@@ -2,10 +2,6 @@
 
 Application de gestion de tâches développée avec **Django** et conçue pour être accessible (WCAG 2.1 AA), responsive et prête pour la production.
 
-<p align="center">
-  <img src="image.png" alt="Capture d'écran : Liste des tâches" style="max-width:100%; height:auto;" />
-</p>
-
 ## Sommaire
 
 1. [Aperçu](#aper%C3%A7u)
