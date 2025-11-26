@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # -----------------------------
-# Script de build pour le projet Django
+# Script de build pour le projet Django avec pipenv
 # -----------------------------
 
 set -e  # Stoppe le script si une commande échoue
@@ -15,13 +15,13 @@ fi
 
 # 1️⃣ Linter + tests + coverage avant la version
 echo "=== Lancement du linter ==="
-flake8 tasks manage.py || exit 1
+pipenv run flake8 tasks manage.py || exit 1
 
 echo "=== Lancement des tests Django ==="
-pipenv run python manage.py test || exit 1
+pipenv run python manage.py test tasks || exit 1
 
 echo "=== Lancement de la couverture de tests ==="
-pipenv run coverage run --source=tasks manage.py test
+pipenv run coverage run --source='tasks' manage.py test tasks || exit 1
 pipenv run coverage report
 pipenv run coverage html
 

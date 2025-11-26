@@ -1,18 +1,16 @@
-# tasks/import_dataset.py
 import os
 import sys
 import django
 import json
+from tasks.models import Task
 
 # Ajouter la racine du projet au PYTHONPATH
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
 
-# Définit le module de settings Django
+# Charger les settings Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'todo.settings')
 django.setup()
-
-from tasks.models import Task
 
 # Chemin vers le dataset
 dataset_path = os.path.join(os.path.dirname(__file__), 'dataset.json')

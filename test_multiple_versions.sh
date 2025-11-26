@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Liste des versions de Python à tester
-PYTHON_VERSIONS=("3.13" "3.9" "2.7")
+PYTHON_VERSIONS=("3.12" "3.9" "2.7")
 
 # Liste des versions de Django à tester
 DJANGO_VERSIONS=("5.0" "4.2" "3.2")
