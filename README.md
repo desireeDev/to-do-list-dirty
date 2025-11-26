@@ -300,7 +300,7 @@ Les versions récentes de Django ont progressivement supprimé ou modifié certa
    pipenv install --dev
    ```
 
-3. Forçage d'une version stable et compatible de Django :
+3. Forçage d'une version stable et compatible de Django:
 
    ```bash
    pipenv install "django>=4.2,<4.3"
