@@ -1,37 +1,33 @@
 #!/usr/bin/env python3
 """
 Script pour générer result_test_auto.json à partir des tests Django.
-À placer dans le dossier tasks/
+Version simplifiée sans configuration Django compliquée.
 """
 
-import os
-import sys
 import json
 import subprocess
-import django
-
-# Ajoute le répertoire parent au path pour pouvoir importer Django
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Configure Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'todo_project.settings')
-try:
-    django.setup()
-except Exception as e:
-    print(f"❌ Erreur configuration Django: {e}")
-    sys.exit(1)
+import sys
+import os
 
 def run_django_tests():
     """Exécute les tests Django et génère un rapport JSON."""
     
     print("🚀 Exécution des tests Django...")
     
-    # Exécute les tests Django pour l'app tasks
+    # CHANGE : Utilise directement manage.py depuis la racine
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    manage_py = os.path.join(project_root, 'manage.py')
+    
+    if not os.path.exists(manage_py):
+        print(f"❌ manage.py non trouvé à: {manage_py}")
+        sys.exit(1)
+    
+    # Exécute les tests Django
     result = subprocess.run(
-        ['python', 'manage.py', 'test', 'tasks', '--noinput', '--verbosity=2'],
+        [sys.executable, manage_py, 'test', 'tasks', '--noinput', '--verbosity=2'],
         capture_output=True,
         text=True,
-        cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Racine du projet
+        cwd=project_root
     )
     
     print("📊 Analyse des résultats...")
@@ -40,7 +36,7 @@ def run_django_tests():
     test_results = {}
     lines = result.stdout.split('\n')
     
-    # IDs de test correspondant à tes 21 tests
+    # IDs de test
     test_mapping = {
         'test_01_index_get': 'TC001',
         'test_02_index_post_valid': 'TC002',
@@ -65,7 +61,7 @@ def run_django_tests():
         'test_pa11y_available': 'TC021'
     }
     
-    # Initialise tous les tests comme 'not_found'
+    # Initialise tous les tests
     for test_id in test_mapping.values():
         test_results[test_id] = {'status': 'not_found', 'output': 'Non exécuté'}
     
@@ -75,7 +71,7 @@ def run_django_tests():
         if not line:
             continue
         
-        # Cherche les résultats de test
+        # Cherche les résultats
         for test_method, test_id in test_mapping.items():
             if test_method in line:
                 if 'OK' in line or '...' in line or '. ' in line:
@@ -91,20 +87,16 @@ def run_django_tests():
                 
                 test_results[test_id] = {
                     'status': status,
-                    'output': line[:100],
-                    'method': test_method
+                    'output': line[:100]
                 }
                 break
     
-    # Ajoute les tests manuels (TC022 et TC023)
+    # Ajoute les tests manuels
     test_results['TC022'] = {'status': 'manual', 'note': 'Test manuel requis'}
     test_results['TC023'] = {'status': 'manual', 'note': 'Test visuel requis'}
     
-    # Détermine le chemin pour sauvegarder le fichier (racine du projet)
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # Sauvegarde le rapport à la racine
     output_file = os.path.join(project_root, 'result_test_auto.json')
-    
-    # Sauvegarde le rapport
     with open(output_file, 'w') as f:
         json.dump(test_results, f, indent=2, ensure_ascii=False)
     
@@ -112,12 +104,14 @@ def run_django_tests():
     passed = sum(1 for r in test_results.values() if r.get('status') == 'passed')
     failed = sum(1 for r in test_results.values() if r.get('status') == 'failed')
     manual = sum(1 for r in test_results.values() if r.get('status') == 'manual')
+    not_found = sum(1 for r in test_results.values() if r.get('status') == 'not_found')
     
     print(f"\n📈 RÉSUMÉ:")
     print(f"   ✅ Tests passés: {passed}")
     print(f"   ❌ Tests échoués: {failed}")
+    print(f"   🔍 Non trouvés: {not_found}")
     print(f"   👤 Tests manuels: {manual}")
-    print(f"   📁 Rapport sauvegardé: {output_file}")
+    print(f"   📁 Rapport: {output_file}")
     
     return test_results
 
