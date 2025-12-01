@@ -307,7 +307,7 @@ Après cette série d’actions, les erreurs liées à CGI/WSGI ont disparu et l
 
 ## Statut
 
-* **Version 1.3.0** finalisée
+* **Version 1.4.1** finalisée
 * Conformité WCAG 2.1 AA
 * Tests automatisés intégrés
 * Interface responsive
