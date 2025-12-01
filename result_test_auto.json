@@ -1,0 +1,94 @@
+{
+  "TC001": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC002": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC003": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC004": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC005": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC006": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC007": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC008": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC009": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC010": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC011": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC012": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC013": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC014": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC015": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC016": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC017": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC018": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC019": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC020": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC021": {
+    "status": "passed",
+    "note": "Test exécuté avec succès"
+  },
+  "TC022": {
+    "status": "manual",
+    "note": "Test manuel requis"
+  },
+  "TC023": {
+    "status": "manual",
+    "note": "Test visuel requis"
+  }
+}
