@@ -307,12 +307,52 @@ Après cette série d’actions, les erreurs liées à CGI/WSGI ont disparu et l
 
 ## Statut
 
-* **Version 1.3.0** finalisée
+* **Version 1.4.1** finalisée
 * Conformité WCAG 2.1 AA
 * Tests automatisés intégrés
 * Interface responsive
 
 ---
+# Tests Selenium - Application To-Do List
+
+## 📋 Description
+Suite de tests E2E (End-to-End) automatisés avec Selenium pour l'application To-Do List Django. Ces tests vérifient les fonctionnalités principales de création, lecture et suppression de tâches.
+
+## 🧪 Tests Implémentés
+
+### TE001 : Test Complet Création/Suppression
+- Compte les tâches initiales
+- Crée 10 nouvelles tâches
+- Vérifie le compte après création
+- Supprime les 10 tâches créées
+- Vérifie le compte final
+
+### TE002 : Test Spécifique Ajout/Suppression
+- Ajoute une première tâche
+- Ajoute une deuxième tâche
+- Supprime la deuxième tâche
+- Vérifie que la première tâche persiste
+
+### TE012 : Test Exercice 12 (Suppression spécifique)
+- Ajout d'une tâche avec détection de son identifiant
+- Ajout d'une deuxième tâche
+- Suppression de la dernière tâche créée
+- Vérification que la première tâche est toujours présente
+
+## 🚀 Prérequis
+
+### 1. Installation des dépendances
+```bash
+# Activer l'environnement virtuel
+pipenv shell
+
+# Installer Selenium
+pipenv install selenium
+
+# Installer ChromeDriver (selon votre OS)
+# Windows : Télécharger depuis https://chromedriver.chromium.org/
+# Mac : brew install chromedriver
+# Linux : sudo apt-get install chromium-chromedriver
 
 ### Contact
 
