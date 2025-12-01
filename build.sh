@@ -16,7 +16,7 @@ fi
 
 echo "=== BUILD v$VERSION DÉMARRÉ ==="
 
-# 0️⃣ Vérification des fichiers requis pour la Partie 1 (NOUVEAU)
+# 0️⃣ Vérification des fichiers requis pour la Partie 1
 echo "=== Vérification des fichiers de test ==="
 REQUIRED_FILES=("test_list.yaml" "test_report.py" "tasks/generate_test_report.py" "tasks/decorators.py")
 for file in "${REQUIRED_FILES[@]}"; do
@@ -27,7 +27,7 @@ for file in "${REQUIRED_FILES[@]}"; do
 done
 echo "✅ Tous les fichiers de test sont présents"
 
-# 1️⃣ Installation de PyYAML si nécessaire (NOUVEAU)
+# 1️⃣ Installation de PyYAML si nécessaire
 echo "=== Installation des dépendances tests avancés ==="
 if ! pipenv run python -c "import yaml" &> /dev/null; then
     echo "Installing PyYAML..."
@@ -35,9 +35,9 @@ if ! pipenv run python -c "import yaml" &> /dev/null; then
 fi
 echo "✅ Dépendances installées"
 
-# 2️⃣ Linter
+# 2️⃣ Linter (CORRIGÉ : ajoute tous les fichiers)
 echo "=== Lancement du linter ==="
-pipenv run flake8 tasks manage.py test_report.py || exit 1
+pipenv run flake8 tasks manage.py test_report.py tasks/generate_test_report.py tasks/decorators.py || exit 1
 echo "✅ Linter passed"
 
 # 3️⃣ Tests Django avec IDs
@@ -45,12 +45,17 @@ echo "=== Lancement des tests Django (avec IDs) ==="
 pipenv run python manage.py test tasks --noinput || exit 1
 echo "✅ Tests Django passed"
 
-# 4️⃣ Génération du rapport JSON des tests (NOUVEAU - Partie 1)
+# 4️⃣ Génération du rapport JSON des tests (AJOUTÉ fallback)
 echo "=== Génération du rapport JSON des tests ==="
-pipenv run python tasks/generate_test_report.py || exit 1
-echo "✅ Rapport JSON généré"
+if pipenv run python tasks/generate_test_report.py; then
+    echo "✅ Rapport JSON généré"
+else
+    echo "⚠️  Utilisation du générateur simple..."
+    pipenv run python tasks/simple_test_report.py || exit 1
+    echo "✅ Rapport simple généré"
+fi
 
-# 5️⃣ Rapport visuel des tests (NOUVEAU - Partie 1)
+# 5️⃣ Rapport visuel des tests
 echo "=== Rapport visuel des tests ==="
 pipenv run python test_report.py || echo "⚠️  Rapport visuel - continuation..."
 echo "✅ Rapport visuel généré"
@@ -88,7 +93,7 @@ git add "$SETTINGS_FILE"
 git commit -m "chore: bump version to $VERSION" --allow-empty
 echo "✅ Version mise à jour à $VERSION"
 
-# 9️⃣ Mise à jour du changelog (AJOUTÉ contenu Partie 1)
+# 9️⃣ Mise à jour du changelog
 if [ -f "CHANGELOG.md" ]; then
     echo -e "## Version $VERSION - $(date +%Y-%m-%d)\n- **Système de tests avancés (Partie 1)**\n  - Cahier de tests YAML avec 23 tests (20 auto, 3 manuels)\n  - IDs de test pour traçabilité (décorateurs @tc)\n  - Génération automatique de rapport JSON (result_test_auto.json)\n  - Rapport visuel avec statistiques en pourcentage\n  - Intégration au pipeline de build\n- Tests d'accessibilité WCAG 2.1 AA automatisés\n- Conformité totale aux normes d'accessibilité\n\n" | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
     git add CHANGELOG.md
@@ -105,13 +110,13 @@ else
     echo "✅ Tag v$VERSION créé"
 fi
 
-# 1️⃣1️⃣ Génère l'archive .zip (AJOUTÉ nouveaux fichiers)
+# 1️⃣1️⃣ Génère l'archive .zip (AJOUTÉ le fichier simple_test_report.py)
 if command -v zip >/dev/null 2>&1; then
-    # Inclure tous les nouveaux fichiers de test
+    # Inclure tous les fichiers de test
     zip -r "todolist-$VERSION.zip" \
         todo tasks manage.py \
         test_list.yaml test_report.py \
-        tasks/generate_test_report.py tasks/decorators.py \
+        tasks/generate_test_report.py tasks/simple_test_report.py tasks/decorators.py \
         accessibility_check.sh \
         -x "*.pyc" "__pycache__/*" ".git/*" "*.zip"
     echo "✅ Archive générée : todolist-$VERSION.zip"
