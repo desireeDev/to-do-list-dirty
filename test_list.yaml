@@ -123,3 +123,25 @@ tests:
       - "Desktop (1920x1080)"
       - "Tablet (768x1024)"
       - "Mobile (375x667)"
+
+  TO01:
+    description: "Se connecter manuellement à l'application, compter le nombre de tâches, créer 10 tâches, supprimer 10 tâches et compter à nouveau"
+    type: "manuel"
+    category: "E2E"
+    steps:
+      - "Ouvrir http://127.0.0.1:8000 dans un navigateur"
+      - "Compter le nombre initial de tâches affichées"
+      - "Créer 10 nouvelles tâches via le formulaire"
+      - "Compter le nombre de tâches après création (devrait être +10)"
+      - "Supprimer les 10 tâches créées"
+      - "Compter le nombre final de tâches (devrait être égal au nombre initial)"
+
+  TE001:
+    description: "Test E2E complet: compter, créer 10 tâches, supprimer 10 tâches"
+    type: "auto-selenium"
+    category: "E2E"
+    
+  TE002:
+    description: "Test E2E spécifique: ajouter tâche, identifier, ajouter autre, supprimer dernière"
+    type: "auto-selenium"
+    category: "E2E"

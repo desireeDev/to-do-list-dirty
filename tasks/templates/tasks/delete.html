@@ -194,14 +194,15 @@
             Tâche intitulée : {{ item }}
         </p>
 
-        <form method="POST" action="{% url 'delete' item.id %}" role="form" aria-labelledby="form-title">
+        <form method="POST" action="{% url 'delete' item.id %}" role="form" aria-labelledby="form-title" data-testid="delete-confirmation-form">
             <h2 id="form-title" class="sr-only">Actions de confirmation</h2>
             {% csrf_token %}
             
             <div class="button-group">
                 <button type="submit" 
                         class="btn-confirm" 
-                        aria-describedby="confirm-instruction">
+                        aria-describedby="confirm-instruction"
+                        data-testid="confirm-delete-button">
                     Oui, supprimer
                 </button>
                 

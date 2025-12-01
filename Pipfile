@@ -4,8 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-django = "==4.2,5.0"
 pyyaml = "*"
+selenium = "*"
+django = "==5.1"
 
 [dev-packages]
 ruff = "*"
