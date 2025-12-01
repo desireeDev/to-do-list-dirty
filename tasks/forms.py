@@ -1,9 +1,9 @@
 from django import forms
 from .models import Task
 
+
 class TaskForm(forms.ModelForm):
     """Formulaire pour le modèle Task."""
-    
     title = forms.CharField(
         widget=forms.TextInput(
             attrs={
@@ -14,7 +14,6 @@ class TaskForm(forms.ModelForm):
         ),
         label="Titre de la tâche"
     )
-    
     # NOUVEAUX CHAMPS
     priority = forms.BooleanField(
         required=False,

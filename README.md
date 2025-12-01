@@ -29,12 +29,12 @@ Cette application To-Do permet de créer, modifier, supprimer et lister des tâc
 
 Affichage principal (liste des tâches) :
 
-![Liste des tâches](image.png)
+![alt text](ÄGGE.png)
+![alt text](PRIO.png)
 
 Formulaire de modification d'une tâche :
 
-![Modifier une tâche](V2.png)
-
+![alt text](image-1.png)
 Confirmation de suppression :
 
 ![Confirmation suppression](V3.png)
@@ -353,6 +353,38 @@ pipenv install selenium
 # Windows : Télécharger depuis https://chromedriver.chromium.org/
 # Mac : brew install chromedriver
 # Linux : sudo apt-get install chromium-chromedriver
+
+## 🎯 Partie 3 - TDD (Test-Driven Development) et ATDD
+
+### Exercice 13-14 : Compréhension TDD/ATDD
+- **TDD (Test-Driven Development)** : Développement piloté par les tests unitaires
+  - Cycle Red → Green → Refactor
+  - Écriture des tests AVANT le code de production
+  
+- **ATDD (Acceptance Test-Driven Development)** : Développement piloté par les tests d'acceptation
+  - Collaboration avec le client/product owner
+  - Tests fonctionnels basés sur les critères d'acceptation
+
+### Exercice 15 : Implémentation TDD - Tâches prioritaires
+
+#### Fonctionnalité ajoutée
+En tant qu'utilisateur, je souhaite pouvoir marquer une tâche comme prioritaire afin de voir les tâches importantes en premier.
+
+#### Approche TDD appliquée
+1. **RED** : Écriture des tests qui échouent
+2. **GREEN** : Implémentation minimale pour faire passer les tests
+3. **REFACTOR** : Amélioration du code tout en gardant les tests verts
+
+#### Tests implémentés (Phase RED)
+```python
+# tests/test_priority.py
+TP001: test_create_task_with_priority_field()
+TP002: test_priority_default_value_is_false()
+TP003: test_create_priority_task()
+TP004: test_task_form_includes_priority_field()
+TP005: test_priority_in_create_view()
+TP006: test_tasks_ordered_by_priority()
+TP007: test_priority_display_in_template()
 
 ### Contact
 
