@@ -1,8 +1,8 @@
 {
   "tests": {
     "TE001": {
-      "status": "passed",
-      "message": "Test réussi: 1→11→1"
+      "status": "failed",
+      "message": "Nombre final incorrect: attendu 2, obtenu 3"
     },
     "TE002": {
       "status": "passed",
@@ -20,8 +20,8 @@
   },
   "summary": {
     "total": 3,
-    "passed": 3,
-    "failed": 0,
-    "timestamp": "2025-12-01 18:11:17"
+    "passed": 2,
+    "failed": 1,
+    "timestamp": "2025-12-01 20:08:07"
   }
 }
