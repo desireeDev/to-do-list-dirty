@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Tests E2E avec Selenium pour l'application To-Do List.
+Exercice 9 - Générer result_test_selenium.json
 """
 
 import time
@@ -140,7 +141,7 @@ class TodoListSeleniumTests:
         """Compte le nombre de tâches affichées."""
         try:
             # Cherche tous les éléments de tâche (adaptez ce sélecteur à votre HTML)
-            tasks = self.driver.find_elements(By.CSS_SELECTOR, ".task-item, tr.task, li.task")
+            tasks = self.driver.find_elements(By.CSS_SELECTOR, ".task-item, tr.task, li.task, .task")
             return len(tasks)
         except:
             return 0
@@ -167,19 +168,22 @@ class TodoListSeleniumTests:
             
             for element in task_elements:
                 # Chercher le bouton de suppression à proximité
-                delete_btn = element.find_element(By.XPATH, "./following::a[contains(@href, 'delete')] | ./following::button[contains(text(), 'Delete')]")
-                if delete_btn:
-                    delete_btn.click()
-                    time.sleep(0.5)
-                    
-                    # Confirmer la suppression si nécessaire
-                    try:
-                        confirm_btn = self.driver.find_element(By.CSS_SELECTOR, "button.confirm-delete, input[value='Confirm']")
-                        confirm_btn.click()
-                    except:
-                        pass
-                    
-                    break
+                try:
+                    delete_btn = element.find_element(By.XPATH, "./following::a[contains(@href, 'delete') or contains(text(), 'Supprimer') or contains(text(), 'Delete')] | ./following::button[contains(text(), 'Supprimer') or contains(text(), 'Delete')]")
+                    if delete_btn:
+                        delete_btn.click()
+                        time.sleep(0.5)
+                        
+                        # Confirmer la suppression si nécessaire
+                        try:
+                            confirm_btn = self.driver.find_element(By.CSS_SELECTOR, "button.confirm-delete, input[value='Confirm'], input[value='Confirmer'], button[type='submit']")
+                            confirm_btn.click()
+                        except:
+                            pass
+                        
+                        break
+                except:
+                    continue
         except Exception as e:
             print(f"   Erreur lors de la suppression de '{task_name}': {e}")
     
@@ -228,4 +232,10 @@ def run_selenium_tests():
     return tester.results
 
 if __name__ == "__main__":
-    run_selenium_tests()
+    print("="*60)
+    print("EXÉCUTION DES TESTS SELENIUM - EXERCICE 9")
+    print("="*60)
+    results = run_selenium_tests()
+    print("\n🎯 Tests Selenium terminés. Vérifiez result_test_selenium.json")
+    print("="*60)
+    
