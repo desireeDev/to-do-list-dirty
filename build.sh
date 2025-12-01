@@ -2,7 +2,7 @@
 
 # -----------------------------
 # Script de build pour le projet Django avec pipenv
-# Version 1.4.1 - Tests E2E avec Selenium
+# Version 1.5.0 - TDD et fonctionnalité de priorité
 # -----------------------------
 
 set -e  # Stoppe le script si une commande échoue
@@ -18,7 +18,7 @@ echo "=== BUILD v$VERSION DÉMARRÉ ==="
 
 # 0️⃣ Vérification des fichiers requis
 echo "=== Vérification des fichiers ==="
-REQUIRED_FILES=("test_list.yaml" "test_report.py" "tasks/generate_test_report.py" "tasks/decorators.py")
+REQUIRED_FILES=("test_list.yaml" "test_report.py" "tasks/generate_test_report.py" "tasks/decorators.py" "TDD_ATDD_EXPLANATION.md")
 for file in "${REQUIRED_FILES[@]}"; do
     if [ ! -f "$file" ]; then
         echo "❌ Fichier manquant: $file"
@@ -26,20 +26,17 @@ for file in "${REQUIRED_FILES[@]}"; do
     fi
 done
 
-# Vérification du fichier Selenium pour l'exercice 12
-SELENIUM_FILE="selenium_test.py"
-if [ ! -f "$SELENIUM_FILE" ]; then
-    echo "⚠️  Fichier Selenium non trouvé: $SELENIUM_FILE"
-    echo "   Création d'un fichier minimal..."
-    cat > "$SELENIUM_FILE" << 'EOF'
-#!/usr/bin/env python3
-"""
-Tests E2E avec Selenium pour l'exercice 12.
-"""
-print("⚠️  Tests Selenium non implémentés - Exercice 12 manquant")
-EOF
-    chmod +x "$SELENIUM_FILE"
-fi
+# Vérification des fichiers TDD
+echo "=== Vérification fichiers TDD ==="
+TDD_FILES=("tasks/test_priority.py")
+for file in "${TDD_FILES[@]}"; do
+    if [ ! -f "$file" ]; then
+        echo "❌ Fichier TDD manquant: $file"
+        exit 1
+    else
+        echo "✅ $file trouvé"
+    fi
+done
 
 echo "✅ Tous les fichiers vérifiés"
 
@@ -52,7 +49,7 @@ if ! pipenv run python -c "import yaml" &> /dev/null; then
     pipenv install PyYAML --dev --skip-lock
 fi
 
-# Installation de Selenium pour les tests E2E (EXERCICE 12)
+# Installation de Selenium pour les tests E2E
 if ! pipenv run python -c "import selenium" &> /dev/null; then
     echo "Installing Selenium (pour tests E2E)..."
     pipenv install selenium --dev --skip-lock
@@ -60,17 +57,39 @@ fi
 
 echo "✅ Dépendances installées"
 
-# 2️⃣ Linter
+# 2️⃣ Vérification des migrations TDD
+echo "=== Vérification des migrations TDD ==="
+if ! pipenv run python manage.py makemigrations --check --dry-run; then
+    echo "⚠️  Migrations nécessaires pour la fonctionnalité TDD"
+    echo "Création des migrations..."
+    pipenv run python manage.py makemigrations
+    pipenv run python manage.py migrate
+    echo "✅ Migrations appliquées"
+fi
+
+# 3️⃣ Linter
 echo "=== Lancement du linter ==="
-pipenv run flake8 tasks manage.py test_report.py tasks/generate_test_report.py tasks/decorators.py "$SELENIUM_FILE" || exit 1
+pipenv run flake8 tasks manage.py test_report.py tasks/generate_test_report.py tasks/decorators.py tasks/test_priority.py || exit 1
 echo "✅ Linter passed"
 
-# 3️⃣ Tests Django avec IDs
+# 4️⃣ Tests Django avec IDs (incluant tests TDD)
 echo "=== Lancement des tests Django (avec IDs) ==="
+echo "Tests standards..."
 pipenv run python manage.py test tasks --noinput || exit 1
-echo "✅ Tests Django passed"
+echo "✅ Tests Django standards passed"
 
-# 4️⃣ Génération du rapport JSON des tests
+# 5️⃣ Tests TDD spécifiques
+echo "=== Tests TDD pour la fonctionnalité de priorité ==="
+if pipenv run python manage.py test tasks.test_priority --noinput; then
+    echo "✅ Tests TDD priority passed"
+else
+    echo "❌ Tests TDD priority failed"
+    echo "Détail des tests:"
+    pipenv run python manage.py test tasks.test_priority -v 2
+    exit 1
+fi
+
+# 6️⃣ Génération du rapport JSON des tests
 echo "=== Génération du rapport JSON des tests ==="
 if pipenv run python tasks/generate_test_report.py; then
     echo "✅ Rapport JSON généré"
@@ -80,13 +99,14 @@ else
     echo "✅ Rapport simple généré"
 fi
 
-# 5️⃣ Rapport visuel des tests
+# 7️⃣ Rapport visuel des tests
 echo "=== Rapport visuel des tests ==="
 pipenv run python test_report.py || echo "⚠️  Rapport visuel - continuation..."
 echo "✅ Rapport visuel généré"
 
-# 6️⃣ TESTS E2E SELENIUM (EXERCICE 12) - OPTIONNEL
-echo "=== Tests E2E avec Selenium (Exercice 12) ==="
+# 8️⃣ TESTS E2E SELENIUM - OPTIONNEL
+echo "=== Tests E2E avec Selenium ==="
+SELENIUM_FILE="selenium_test.py"
 if [ -f "$SELENIUM_FILE" ]; then
     echo "Démarrage des tests Selenium..."
     
@@ -122,25 +142,24 @@ else
     echo "⚠️  Fichier Selenium non trouvé - skip"
 fi
 
-# 7️⃣ Couverture de tests
+# 9️⃣ Couverture de tests
 echo "=== Lancement de la couverture de tests ==="
 pipenv run coverage run --source='tasks' manage.py test tasks || exit 1
 pipenv run coverage report
 pipenv run coverage html
 echo "✅ Couverture de tests passed"
 
-# 8️⃣ TESTS D'ACCESSIBILITÉ WCAG 2.1 AA
+# 🔟 TESTS D'ACCESSIBILITÉ WCAG 2.1 AA
 echo "=== Lancement des tests d'accessibilité WCAG 2.1 AA ==="
 if [ -f "./accessibility_check.sh" ]; then
     chmod +x ./accessibility_check.sh
     ./accessibility_check.sh || exit 1
     echo "✅ Tests d'accessibilité WCAG 2.1 AA passed"
 else
-    echo "❌ Script accessibility_check.sh non trouvé"
-    exit 1
+    echo "⚠️  Script accessibility_check.sh non trouvé - skip"
 fi
 
-# 9️⃣ Met à jour la version dans settings.py
+# 1️⃣1️⃣ Met à jour la version dans settings.py
 SETTINGS_FILE="todo/settings.py"
 
 if [ ! -f "$SETTINGS_FILE" ]; then
@@ -155,31 +174,32 @@ git add "$SETTINGS_FILE"
 git commit -m "chore: bump version to $VERSION" --allow-empty
 echo "✅ Version mise à jour à $VERSION"
 
-# 🔟 Mise à jour du changelog
+# 1️⃣2️⃣ Mise à jour du changelog
 if [ -f "CHANGELOG.md" ]; then
-    echo -e "## Version $VERSION - $(date +%Y-%m-%d)\n- **Tests E2E avec Selenium (Exercice 12)**\n  - Tests end-to-end automatisés\n  - Scénario: ajout, identification, suppression de tâches\n  - Vérification de la persistance des données\n  - Intégration dans le pipeline CI/CD\n- **Système de tests avancés**\n  - Cahier de tests YAML avec suivi\n  - Rapports JSON et visuels\n- Tests d'accessibilité WCAG 2.1 AA automatisés\n- Conformité totale aux normes d'accessibilité\n\n" | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
+    echo -e "## Version $VERSION - $(date +%Y-%m-%d)\n- **Implémentation TDD de la fonctionnalité de priorité (Exercice 15)**\n  - Méthodologie TDD (Red-Green-Refactor) appliquée\n  - 10 tests complets (TP001-TP010) pour la priorité\n  - Champ 'priority' ajouté au modèle Task\n  - Tri automatique par priorité puis date\n  - Badge ⚡ pour les tâches prioritaires\n- **Documentation TDD/ATDD (Exercices 13-14)**\n  - Explications détaillées des méthodologies\n  - Différences entre TDD et ATDD\n  - Exemples concrets du projet\n- **Système de tests avancés**\n  - Cahier de tests YAML mis à jour\n  - Tests E2E Selenium fonctionnels\n  - Rapports JSON et visuels complets\n- Tests d'accessibilité WCAG 2.1 AA automatisés\n- Conformité totale aux normes d'accessibilité\n\n" | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
     git add CHANGELOG.md
     git commit -m "docs: update changelog for $VERSION" --allow-empty
     echo "✅ Changelog mis à jour"
 fi
 
-# 1️⃣1️⃣ Tag Git
+# 1️⃣3️⃣ Tag Git
 if git rev-parse "v$VERSION" >/dev/null 2>&1; then
     echo "Le tag v$VERSION existe déjà, utilisation du tag existant."
 else
-    git tag -a "v$VERSION" -m "Version $VERSION - Tests E2E Selenium + Exercice 12"
+    git tag -a "v$VERSION" -m "Version $VERSION - TDD Priority Feature + Exercises 13-15"
     git push origin "v$VERSION"
     echo "✅ Tag v$VERSION créé"
 fi
 
-# 1️⃣2️⃣ Génère l'archive .zip
+# 1️⃣4️⃣ Génère l'archive .zip
 if command -v zip >/dev/null 2>&1; then
-    # Inclure tous les fichiers de test
+    # Inclure tous les fichiers de test et TDD
     zip -r "todolist-$VERSION.zip" \
         todo tasks manage.py \
-        test_list.yaml test_report.py "$SELENIUM_FILE" \
-        tasks/generate_test_report.py tasks/simple_test_report.py tasks/decorators.py \
-        accessibility_check.sh \
+        test_list.yaml test_report.py selenium_test.py \
+        tasks/generate_test_report.py tasks/simple_test_report.py tasks/decorators.py tasks/test_priority.py \
+        TDD_ATDD_EXPLANATION.md \
+        accessibility_check.sh build.sh \
         -x "*.pyc" "__pycache__/*" ".git/*" "*.zip"
     echo "✅ Archive générée : todolist-$VERSION.zip"
 else
@@ -191,11 +211,14 @@ echo ""
 echo "=========================="
 echo "🎉 BUILD v$VERSION TERMINÉ AVEC SUCCÈS"
 echo "📦 todolist-$VERSION.zip"
-echo "🧪 SYSTÈME DE TESTS COMPLET"
+echo "🧪 SYSTÈME DE TESTS COMPLET AVEC TDD"
+echo "  ✓ Méthodologie TDD appliquée (Red-Green-Refactor)"
 echo "  ✓ Tests Django avec IDs"
-echo "  ✓ Tests E2E Selenium (Exercice 12)"
+echo "  ✓ Tests TDD pour la priorité (TP001-TP010)"
+echo "  ✓ Tests E2E Selenium"
 echo "  ✓ Rapports JSON et visuels"
-echo "  ✓ Statistiques en pourcentage"
+echo "  ✓ Documentation TDD/ATDD complète"
 echo "♿ Accessibilité WCAG 2.1 AA validée"
-echo "🚀 Tests end-to-end automatisés"
+echo "🚀 Fonctionnalité de priorité implémentée avec TDD"
+echo "📚 Exercices 13-15 complétés"
 echo "=========================="

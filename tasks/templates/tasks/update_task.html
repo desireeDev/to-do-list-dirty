@@ -123,7 +123,7 @@
     }
 
     .form-text {
-        color: #212529; /* NOIR pour contraste maximum */
+        color: #212529;
         font-size: 0.875rem;
         margin-top: 0.25rem;
         font-weight: 500;
@@ -182,7 +182,7 @@
             {% csrf_token %}
             
             <p id="form-description" class="sr-only">
-                Formulaire de modification de tâche. Remplissez le titre et indiquez si la tâche est complétée.
+                Formulaire de modification de tâche. Remplissez le titre, indiquez si la tâche est complétée et si elle est prioritaire.
             </p>
             
             <!-- Champ titre avec label accessible -->
@@ -228,6 +228,31 @@
                 {% if form.complete.errors %}
                     <div class="alert alert-danger" role="alert" aria-live="polite">
                         {% for error in form.complete.errors %}
+                            <strong>Erreur :</strong> {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- CHAMP PRIORITÉ - AJOUTÉ ICI DANS LE FORMULAIRE -->
+            <div class="form-group">
+                <fieldset>
+                    <legend class="sr-only">Priorité de la tâche</legend>
+                    <div class="checkbox-group">
+                        <input type="checkbox" 
+                               name="priority" 
+                               id="id_priority" 
+                               {% if form.priority.value %}checked{% endif %}
+                               aria-describedby="priority_help">
+                        <label for="id_priority">Tâche prioritaire ⚡</label>
+                    </div>
+                </fieldset>
+                <small id="priority_help" class="form-text">
+                    Cochez cette case pour marquer la tâche comme prioritaire
+                </small>
+                {% if form.priority.errors %}
+                    <div class="alert alert-danger" role="alert" aria-live="polite">
+                        {% for error in form.priority.errors %}
                             <strong>Erreur :</strong> {{ error }}
                         {% endfor %}
                     </div>

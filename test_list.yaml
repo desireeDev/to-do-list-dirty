@@ -145,3 +145,37 @@ tests:
     description: "Test E2E spécifique: ajouter tâche, identifier, ajouter autre, supprimer dernière"
     type: "auto-selenium"
     category: "E2E"
+    TP001:
+  description: "Le modèle Task a un champ priority"
+  type: "auto-unittest"
+  category: "priority"
+  
+TP002:
+  description: "La priorité est False par défaut"
+  type: "auto-unittest"
+  category: "priority"
+  
+TP003:
+  description: "Création d'une tâche prioritaire"
+  type: "auto-unittest"
+  category: "priority"
+  
+TP004:
+  description: "TaskForm inclut le champ priority"
+  type: "auto-unittest"
+  category: "priority"
+  
+TP005:
+  description: "Vue de création accepte la priorité"
+  type: "auto-unittest"
+  category: "priority"
+  
+TP006:
+  description: "Les tâches sont ordonnées par priorité"
+  type: "auto-unittest"
+  category: "priority"
+  
+TP007:
+  description: "La priorité s'affiche dans le template"
+  type: "auto-unittest"
+  category: "priority"

@@ -3,18 +3,10 @@ from django.test import TestCase
 from tasks.models import Task
 from tasks.forms import TaskForm
 from django.urls import reverse
+from tasks.decorators import tc 
 
 class TaskPriorityTests(TestCase):
     """Tests TDD pour la fonctionnalité de priorité des tâches."""
-    
-    # Décorateur pour identifier les tests (Exercice 3)
-    def tc(self, test_id):
-        """Décorateur pour identifier les tests dans le cahier."""
-        def decorator(func):
-            func.test_case_id = test_id
-            return func
-        return decorator
-    
     # ============== PHASE RED - Tests qui échouent ==============
     
     @tc("TP001")
