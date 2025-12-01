@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Script de rapport de tests - Exercice 5
-Lecture de test_list.yaml et result_test_auto.json.
+Script de rapport de tests - Exercice 5 & 6
+Lecture de test_list.yaml et result_test_auto.json avec statistiques.
 """
 
 import yaml
@@ -34,7 +34,7 @@ def load_test_results():
         return {}
 
 def main():
-    """Génère le rapport de tests visuel."""
+    """Génère le rapport de tests visuel avec statistiques."""
     
     print("Lecture des tests auto via result_test_auto.json…")
     print()
@@ -43,12 +43,23 @@ def main():
     tests = load_test_list()
     results = load_test_results()
     
-    # Affiche chaque test
+    # Initialise les compteurs
+    stats = {
+        'total': 0,
+        'passed': 0,
+        'failed': 0,
+        'not_found': 0,
+        'manual': 0
+    }
+    
+    # Affiche chaque test et compte
     for test_id in sorted(tests.keys()):
+        stats['total'] += 1
         test_info = tests[test_id]
         test_type = test_info.get('type', 'unknown')
         
         if test_type == 'manuel':
+            stats['manual'] += 1
             print(f"{test_id} | manual | 💬Manual test needed")
         
         elif test_type == 'auto-unittest':
@@ -56,11 +67,39 @@ def main():
             status = result.get('status', 'not_found')
             
             if status == 'passed':
+                stats['passed'] += 1
                 print(f"{test_id} | auto | ✔Passed")
             elif status == 'failed':
+                stats['failed'] += 1
                 print(f"{test_id} | auto | ✘Failed")
             else:  # not_found, error, etc.
+                stats['not_found'] += 1
                 print(f"{test_id} | auto | 💬Not found")
+    
+    # ================ EXERCICE 6 : STATISTIQUES ================
+    print()
+    print("=" * 50)
+    print("📊 RAPPORT DE TESTS")
+    print("=" * 50)
+    
+    print(f"Number of tests: {stats['total']}")
+    
+    if stats['total'] > 0:
+        # Calcule les pourcentages
+        passed_pct = (stats['passed'] / stats['total']) * 100
+        failed_pct = (stats['failed'] / stats['total']) * 100
+        not_found_pct = (stats['not_found'] / stats['total']) * 100
+        manual_pct = (stats['manual'] / stats['total']) * 100
+        
+        # Affiche les statistiques
+        print(f"✔Passed tests: {stats['passed']} ({passed_pct:.1f}%)")
+        print(f"✘Failed tests: {stats['failed']} ({failed_pct:.1f}%)")
+        print(f"💬Not found tests: {stats['not_found']} ({not_found_pct:.1f}%)")
+        print(f"👥Test to pass manually: {stats['manual']} ({manual_pct:.1f}%)")
+        print()
+        print(f"✔Passed + 👥Manual: {stats['passed'] + stats['manual']} ({passed_pct + manual_pct:.1f}%)")
+    else:
+        print("❌ Aucun test trouvé!")
 
 if __name__ == '__main__':
     main()
