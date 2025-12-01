@@ -1,0 +1,10 @@
+# .coveragerc
+[run]
+omit =
+    */generate_test_report.py
+    */test_*.py
+    */__pycache__/*
+    */migrations/*
+    */tests/*
+    */venv/*
+    */.venv/*
