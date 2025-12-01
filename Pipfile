@@ -7,6 +7,7 @@ name = "pypi"
 pyyaml = "*"
 selenium = "*"
 django = "==5.1"
+webdriver-manager = "*"
 
 [dev-packages]
 ruff = "*"
