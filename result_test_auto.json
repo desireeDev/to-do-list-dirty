@@ -1,0 +1,94 @@
+{
+  "TC001": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC002": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC003": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC004": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC005": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC006": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC007": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC008": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC009": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC010": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC011": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC012": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC013": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC014": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC015": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC016": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC017": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC018": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC019": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC020": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC021": {
+    "status": "passed",
+    "note": "Test réussi"
+  },
+  "TC022": {
+    "status": "manual",
+    "note": "Test manuel requis"
+  },
+  "TC023": {
+    "status": "manual",
+    "note": "Test visuel requis"
+  }
+}
