@@ -184,7 +184,20 @@
         .main-title {
             font-size: 2rem;
         }
+        
+        .priority-badge {
+    background-color: #ffc107;
+    color: #212529;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.9em;
+    margin-right: 10px;
+    font-weight: bold;
+    display: inline-block;
+}
     }
+
+    
 </style>
 
 <body role="document">
@@ -243,6 +256,9 @@
                         </a>
                         
                         <span class="task-text">
+                             {% if task.priority %}
+                          <span class="priority-badge" aria-label="Tâche prioritaire">⚡</span>
+                         {% endif %}
                             {% if task.complete %}
                             <s aria-label="Tâche complétée : {{ task.title }}">{{ task }}</s>
                             {% else %}
