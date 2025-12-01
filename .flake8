@@ -1,2 +1,4 @@
 [flake8]
 exclude = migrations
+max-line-length = 200
+ignore = E203, W503

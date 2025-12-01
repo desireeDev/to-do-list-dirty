@@ -1,0 +1,27 @@
+{
+  "tests": {
+    "TE001": {
+      "status": "failed",
+      "message": "Page non chargée"
+    },
+    "TE002": {
+      "status": "passed",
+      "message": "Test spécifique réussi: première tâche persistante"
+    },
+    "TE012": {
+      "status": "passed",
+      "message": "Exercice 12 réussi: tâche persistante",
+      "details": {
+        "first_task": "Tâche Exercice 12 - Persistante",
+        "second_task": "Tâche Exercice 12 - À supprimer",
+        "first_task_still_present": true
+      }
+    }
+  },
+  "summary": {
+    "total": 3,
+    "passed": 2,
+    "failed": 1,
+    "timestamp": "2025-12-01 14:37:24"
+  }
+}

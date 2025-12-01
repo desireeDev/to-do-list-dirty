@@ -200,7 +200,7 @@
         </div>
 
         <div class="center-column">
-            <form method="POST" action="/" role="form" aria-labelledby="form-title">
+            <form method="POST" action="/" role="form" aria-labelledby="form-title" data-testid="add-task-form">
                 {% csrf_token %}
                 <h2 id="form-title" class="sr-only">Formulaire d'ajout de tâche</h2>
                 
@@ -213,13 +213,14 @@
                            placeholder="Que souhaitez-vous accomplir ?"
                            aria-describedby="title_help"
                            required
-                           aria-required="true">
+                           aria-required="true"
+                           data-testid="task-input">
                     <small id="title_help" class="form-text">
                         Saisissez le titre de votre nouvelle tâche
                     </small>
                 </div>
                 
-                <button type="submit" class="submit">
+                <button type="submit" class="submit" data-testid="submit-task-button">
                     Ajouter la tâche
                 </button>
             </form>
