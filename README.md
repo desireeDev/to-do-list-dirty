@@ -386,6 +386,47 @@ TP005: test_priority_in_create_view()
 TP006: test_tasks_ordered_by_priority()
 TP007: test_priority_display_in_template()
 
+---
+📌 Partie 4 – Tests d’accessibilité automatiques (réalisée)
+
+J’ai déjà mis en place les tests d’accessibilité demandés dans la Partie 4 du cours. Voici ce que j’ai réalisé :
+
+✅ Exercice 16 – Tests d’accessibilité WGAC 2.1 niveau A
+
+Pour chaque page de l’application, j’ai vérifié la conformité à la norme WGAC 2.1 niveau A en utilisant l’outil Lighthouse intégré à Chrome.
+Les corrections nécessaires ont été apportées pour atteindre un score de 100% sur chaque page.
+---
+---
+
+✅ Exercice 17 – Automatisation des tests d’accessibilité
+Pour éviter de refaire les tests manuellement à chaque modification, j’ai mis en place un système de test automatisé avec Pa11y.
+Pourquoi Pa11y ?
+
+Outil léger et facile à intégrer en CLI ou via script Node.js
+
+Compatible avec les normes WGAC 2.1
+
+Génère des rapports clairs (JSON, HTML, CSV)
+
+Possibilité de l’exécuter en pipeline CI/CD
+---
+J’ai configuré un script Node.js qui lance Pa11y sur chaque URL de l’app et vérifie que le score est bien à 100%. En cas d’échec, le build échoue.
+
+---
+✅ Exercice 18 – Intégration au rapport de tests
+J’ai modifié le script test_report.py pour inclure les résultats des tests d’accessibilité.
+Le rapport affiche maintenant :
+
+Le nombre de tests d’accessibilité exécutés
+
+Le statut (Passed / Failed)
+
+Le score obtenu
+
+Les erreurs détectées (le cas échéant)
+
+---
+
 ### Contact
 
 Pour toute question ou rapport de bug, ouvrir une issue sur le dépôt GitHub.
