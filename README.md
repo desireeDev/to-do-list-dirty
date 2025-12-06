@@ -29,11 +29,11 @@
 
 | Page d'accueil | Création de tâche | Modification |
 |----------------|-------------------|--------------|
-| ![Accueil](image-3.png) | ![Création](image-1.png) | ![Modification](V2.png) |
+| ![Accueil](images/image-3.png) | ![Création](images/image-1.png) | ![Modification]images/(V2.png) |
 
 | Suppression | Priorité des tâches | Tests Selenium |
 |-------------|---------------------|----------------|
-| ![Suppression](V3.png) | ![Priorité](PRIO.png) | ![Selenium](selenium-test.png) |
+| ![Suppression](images/V3.png) | ![Priorité](images/PRIO.png) | !|
 
 ---
 
@@ -170,7 +170,7 @@ TP007: test_priority_display_in_template()
 ### 📦 **Installation Complète**
 ```bash
 # 1. Cloner le dépôt
-git clone <url-du-projet>
+git clone <https://github.com/desireeDev/to-do-list-dirty.git>
 cd to-do-list-dirty
 
 # 2. Installation automatique avec le script build
@@ -601,17 +601,14 @@ Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 ```text
 MIT License
 
-Copyright (c) 2024 [Votre Nom]
+Copyright (c) 2025 [Syntiche Attoh,Etudiante en Master 2 à l'ESIEE-IT]
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Autorisation accordée gratuitement à toute personne obtenant une copie de ce logiciel et de sa documentation, de l'utiliser sans restriction, y compris les droits d'utilisation, copie, modification, fusion, publication, distribution, sous-licence et/ou vente de copies.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Conditions : L'avis de copyright et cet avis d'autorisation doivent être inclus dans toutes les copies ou parties substantielles du logiciel.
+
+LE LOGICIEL EST FOURNI "TEL QUEL", sans garantie d'aucune sorte. Les auteurs ne sont pas responsables des dommages résultant de son utilisation.
+
 ```
 
 ## ✨ Citation
