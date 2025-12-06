@@ -29,7 +29,7 @@ Cette application To-Do permet de créer, modifier, supprimer et lister des tâc
 
 Affichage principal (liste des tâches) :
 
-![alt text](ÄGGE.png)
+![alt text](image-2.png)
 ![alt text](PRIO.png)
 
 Formulaire de modification d'une tâche :

@@ -179,3 +179,17 @@ TP007:
   description: "La priorité s'affiche dans le template"
   type: "auto-unittest"
   category: "priority"
+    
+  # === TESTS D'ACCESSIBILITÉ WCAG 2.1 AA (Exercice 18) ===
+  AC001:
+    type: auto-accessibility
+    description: "Test d'accessibilité de la page d'accueil"
+    url: "http://127.0.0.1:8000/"
+  AC002:
+    type: auto-accessibility
+    description: "Test d'accessibilité de la page de modification"
+    url: "http://127.0.0.1:8000/update_task/"
+  AC003:
+    type: auto-accessibility
+    description: "Test d'accessibilité de la page de suppression"
+    url: "http://127.0.0.1:8000/delete_task/"

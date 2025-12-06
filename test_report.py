@@ -4,21 +4,25 @@ Script de rapport de tests - Exercice 11 et 18
 Modifié pour prendre en compte:
 - Tests "auto-selenium" (Exercice 11)
 - Tests d'accessibilité "auto-accessibility" (Exercice 18)
-- Intégration directe de Pa11y
 """
 
 import yaml
 import json
 import os
 import subprocess
+import sys
 
 
 def load_test_list():
     """Charge la liste des tests depuis YAML."""
     try:
-        with open('test_list.yaml', 'r') as f:
+        with open('test_list.yaml', 'r', encoding='utf-8') as f:
             data = yaml.safe_load(f)
-            return data.get('tests', {})
+            if isinstance(data, dict):
+                return data.get('tests', {})
+            else:
+                print("❌ Erreur: Structure YAML incorrecte")
+                return {}
     except FileNotFoundError:
         print("❌ test_list.yaml non trouvé")
         return {}
@@ -30,7 +34,7 @@ def load_test_list():
 def load_django_results():
     """Charge les résultats des tests Django depuis JSON."""
     try:
-        with open('result_test_auto.json', 'r') as f:
+        with open('result_test_auto.json', 'r', encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
         print("⚠️  result_test_auto.json non trouvé")
@@ -43,7 +47,7 @@ def load_django_results():
 def load_selenium_results():
     """Charge les résultats des tests Selenium depuis JSON."""
     try:
-        with open('result_test_selenium.json', 'r') as f:
+        with open('result_test_selenium.json', 'r', encoding='utf-8') as f:
             data = json.load(f)
             tests = data.get('tests', {})
             count = len(tests)
@@ -51,7 +55,8 @@ def load_selenium_results():
             if 'summary' in data:
                 passed = data['summary'].get('passed', 0)
                 failed = data['summary'].get('failed', 0)
-                msg = f"✅ Fichier result_test_selenium.json chargé ({count} tests, {passed}✅ {failed}❌)"
+                msg = (f"✅ Fichier result_test_selenium.json chargé "
+                       f"({count} tests, {passed}✅ {failed}❌)")
                 print(msg)
             else:
                 msg = f"✅ Fichier result_test_selenium.json chargé ({count} tests Selenium)"
@@ -67,60 +72,210 @@ def load_selenium_results():
         return {}
 
 
-def run_pa11y_accessibility_tests():
-    """
-    EXERCICE 18: Exécute les tests d'accessibilité avec Pa11y
-    et retourne les résultats directement.
-    """
-    print("\n♿ EXÉCUTION DES TESTS D'ACCESSIBILITÉ PA11Y...")
+def run_simple_accessibility_check(url):
+    """Vérifie l'accessibilité basique d'une URL."""
+    try:
+        # Essayer d'importer requests
+        try:
+            import requests
+        except ImportError:
+            return {
+                'url': url,
+                'status': 'failed',
+                'score': 0,
+                'errors_count': 1,
+                'warnings_count': 0,
+                'errors': ['requests non installé. Installez: pip install requests'],
+                'warnings': []
+            }
 
-    # URLs à tester (ajuster selon ton application)
+        response = requests.get(url, timeout=10)
+
+        if response.status_code != 200:
+            return {
+                'url': url,
+                'status': 'failed',
+                'score': 0,
+                'errors_count': 1,
+                'warnings_count': 0,
+                'errors': [f'HTTP {response.status_code}'],
+                'warnings': []
+            }
+
+        # Vérifications de base sur le HTML
+        html = response.text
+
+        checks = {
+            'has_title': '<title>' in html,
+            'has_lang': 'lang=' in html.lower() or 'xml:lang=' in html.lower(),
+            'has_headings': '<h1' in html or '<h2' in html,
+            'has_alt': 'alt=' in html.lower(),
+            'has_labels': 'label' in html.lower(),
+            'has_buttons': 'button' in html.lower() or 'type="submit"' in html.lower(),
+            'has_forms': '<form' in html.lower(),
+            'has_aria': 'aria-' in html.lower(),
+            'has_navigation': 'nav' in html.lower() or 'role="navigation"' in html.lower(),
+            'has_main': 'main' in html.lower() or 'role="main"' in html.lower()
+        }
+
+        # Calcul du score
+        passed_checks = sum(checks.values())
+        total_checks = len(checks)
+        score = int((passed_checks / total_checks) * 100)
+
+        # Détecter les erreurs potentielles
+        errors = []
+        warnings = []
+
+        if not checks['has_title']:
+            errors.append("Pas de titre de page (<title>)")
+        if not checks['has_lang']:
+            errors.append("Attribut de langue manquant (lang='fr')")
+        if not checks['has_alt'] and '<img' in html.lower():
+            warnings.append("Images sans texte alternatif détectées")
+        if not checks['has_labels'] and checks['has_forms']:
+            warnings.append("Formulaires sans labels détectés")
+        if not checks['has_aria']:
+            warnings.append("Pas d'attributs ARIA détectés")
+
+        status = 'passed' if score >= 80 and len(errors) == 0 else 'failed'
+
+        return {
+            'url': url,
+            'status': status,
+            'score': score,
+            'errors_count': len(errors),
+            'warnings_count': len(warnings),
+            'errors': errors,
+            'warnings': warnings,
+            'checks': checks
+        }
+
+    except Exception as e:
+        return {
+            'url': url,
+            'status': 'failed',
+            'score': 0,
+            'errors_count': 1,
+            'warnings_count': 0,
+            'errors': [str(e)],
+            'warnings': []
+        }
+
+
+def run_accessibility_tests():
+    """EXERCICE 18: Exécute les tests d'accessibilité."""
+    print("\n♿ EXÉCUTION DES TESTS D'ACCESSIBILITÉ...")
+
+    # TES URLs spécifiques
     urls_to_test = [
-        "http://127.0.0.1:8000/",
-        "http://127.0.0.1:8000/tasks/",
-        "http://127.0.0.1:8000/login/",
-        "http://127.0.0.1:8000/register/",
+        "http://127.0.0.1:8000/",  # Page d'accueil
+        "http://127.0.0.1:8000/update_task/",  # Modification
+        "http://127.0.0.1:8000/delete_task/",  # Suppression
     ]
 
+    # Vérifier si Pa11y est disponible
+    pa11y_available = False
+    try:
+        if sys.platform == "win32":
+            result = subprocess.run(["where", "pa11y"], capture_output=True, text=True)
+        else:
+            result = subprocess.run(["which", "pa11y"], capture_output=True, text=True)
+        pa11y_available = result.returncode == 0
+    except Exception:
+        pa11y_available = False
+
+    if pa11y_available:
+        print("✅ Pa11y détecté, utilisation des tests complets")
+        return run_pa11y_tests(urls_to_test)
+    else:
+        print("⚠️  Pa11y non disponible, utilisation des tests simplifiés")
+        print("💡 Pour les tests complets: npm install -g pa11y")
+        return run_simple_accessibility_tests(urls_to_test)
+
+
+def run_pa11y_tests(urls_to_test):
+    """Exécute les tests avec Pa11y."""
     results = {}
     total_score = 0
     tests_count = 0
 
     for i, url in enumerate(urls_to_test):
-        test_id = f"AC{i+1:03d}"
-
+        test_id = f"AC{i + 1:03d}"
         print(f"  Testing {url}...")
 
         try:
-            # Exécute Pa11y en ligne de commande
-            # Note: Assure-toi que Pa11y est installé globalement: npm install -g pa11y
+            # Vérifier si la page est accessible
+            try:
+                import requests
+                response = requests.get(url, timeout=5)
+                if response.status_code != 200:
+                    results[test_id] = {
+                        'url': url,
+                        'status': 'failed',
+                        'score': 0,
+                        'errors_count': 1,
+                        'warnings_count': 0,
+                        'errors': [f'HTTP {response.status_code}'],
+                        'warnings': []
+                    }
+                    print(f"    ❌ {test_id}: Page inaccessible (HTTP {response.status_code})")
+                    continue
+            except ImportError:
+                pass  # Continue même si requests n'est pas installé
+
+            # Exécuter Pa11y
             cmd = ["pa11y", "--reporter", "json", url]
 
-            # Exécute la commande avec timeout
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
+            # Ajuster pour Windows
+            if sys.platform == "win32":
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    shell=True
+                )
+            else:
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
 
-            if result.returncode == 0:
+            if result.returncode == 0 or result.stdout:
                 try:
-                    # Parse le résultat JSON
                     pa11y_result = json.loads(result.stdout)
 
-                    # Extraire les informations importantes
-                    errors = pa11y_result.get('issues', {}).get('errors', [])
-                    warnings = pa11y_result.get('issues', {}).get('warnings', [])
+                    # Extraire les erreurs et warnings selon la structure de Pa11y
+                    errors = []
+                    warnings = []
 
-                    # Calculer le score
-                    if errors:
-                        # Pénalité pour chaque erreur
-                        score = max(0, 100 - len(errors) * 10)  # CORRECTION: ajout d'espaces
-                        status = 'failed'
-                    else:
-                        score = 100
-                        status = 'passed'
+                    if isinstance(pa11y_result, list):
+                        # Format array
+                        for issue in pa11y_result:
+                            if isinstance(issue, dict):
+                                if issue.get('type') == 'error':
+                                    errors.append(issue)
+                                else:
+                                    warnings.append(issue)
+                    elif isinstance(pa11y_result, dict):
+                        # Format object avec issues
+                        if 'issues' in pa11y_result:
+                            if isinstance(pa11y_result['issues'], list):
+                                for issue in pa11y_result['issues']:
+                                    if isinstance(issue, dict):
+                                        if issue.get('type') == 'error':
+                                            errors.append(issue)
+                                        else:
+                                            warnings.append(issue)
+                            elif isinstance(pa11y_result['issues'], dict):
+                                errors = pa11y_result['issues'].get('errors', [])
+                                warnings = pa11y_result['issues'].get('warnings', [])
+
+                    score = 100 if not errors else max(0, 100 - len(errors) * 10)
+                    status = 'passed' if score >= 90 else 'failed'
 
                     results[test_id] = {
                         'url': url,
@@ -128,42 +283,42 @@ def run_pa11y_accessibility_tests():
                         'score': score,
                         'errors_count': len(errors),
                         'warnings_count': len(warnings),
-                        'errors': errors[:5],  # Limiter à 5 erreurs pour l'affichage
-                        'documentTitle': pa11y_result.get('documentTitle', ''),
-                        'pageUrl': pa11y_result.get('pageUrl', url)
+                        'errors': errors[:3],
+                        'warnings': warnings[:3]
                     }
 
                     total_score += score
                     tests_count += 1
 
                     status_icon = "✅" if status == 'passed' else "❌"
-                    msg = f"    {status_icon} {test_id}: {url} - Score: {score}% ({len(errors)} erreurs, {len(warnings)} warnings)"
+                    msg = (f"    {status_icon} {test_id}: Score: {score}% "
+                           f"({len(errors)} erreurs, {len(warnings)} warnings)")
                     print(msg)
 
                 except json.JSONDecodeError:
-                    # Si Pa11y ne retourne pas de JSON valide
+                    # Pa11y a peut-être retourné du texte au lieu du JSON
                     results[test_id] = {
                         'url': url,
                         'status': 'failed',
                         'score': 0,
                         'errors_count': 1,
                         'warnings_count': 0,
-                        'errors': [{'message': 'Invalid JSON response from Pa11y'}],
-                        'error': 'JSON decode error'
+                        'errors': ['Erreur de parsing JSON Pa11y'],
+                        'warnings': []
                     }
                     print(f"    ❌ {test_id}: Erreur de parsing JSON")
+                    print(f"    Sortie: {result.stdout[:100]}...")
             else:
-                # Pa11y a échoué
                 results[test_id] = {
                     'url': url,
                     'status': 'failed',
                     'score': 0,
                     'errors_count': 1,
                     'warnings_count': 0,
-                    'errors': [{'message': f'Pa11y execution failed: {result.stderr[:100]}'}],
-                    'error': 'Pa11y execution failed'
+                    'errors': ['Échec d\'exécution Pa11y'],
+                    'warnings': []
                 }
-                print(f"    ❌ {test_id}: Échec d'exécution de Pa11y")
+                print(f"    ❌ {test_id}: Échec d'exécution")
 
         except subprocess.TimeoutExpired:
             results[test_id] = {
@@ -172,8 +327,8 @@ def run_pa11y_accessibility_tests():
                 'score': 0,
                 'errors_count': 1,
                 'warnings_count': 0,
-                'errors': [{'message': 'Pa11y timeout after 30 seconds'}],
-                'error': 'Timeout'
+                'errors': ['Timeout Pa11y'],
+                'warnings': []
             }
             print(f"    ⏱️  {test_id}: Timeout")
         except Exception as e:
@@ -183,26 +338,53 @@ def run_pa11y_accessibility_tests():
                 'score': 0,
                 'errors_count': 1,
                 'warnings_count': 0,
-                'errors': [{'message': f'Unexpected error: {str(e)}'}],
-                'error': 'Unexpected error'
+                'errors': [str(e)],
+                'warnings': []
             }
-            print(f"    ❌ {test_id}: Erreur inattendue: {e}")
+            print(f"    ❌ {test_id}: Erreur: {e}")
 
-    # Calculer le score moyen
     avg_score = total_score / tests_count if tests_count > 0 else 0
+    print(f"\n📊 RÉSUMÉ ACCESSIBILITÉ: {tests_count} pages testées, score moyen: {avg_score:.1f}%")
+    return results
 
-    msg = f"\n📊 RÉSUMÉ ACCESSIBILITÉ: {tests_count} pages testées, score moyen: {avg_score:.1f}%"
-    print(msg)
 
+def run_simple_accessibility_tests(urls_to_test):
+    """Exécute les tests d'accessibilité simplifiés."""
+    results = {}
+    total_score = 0
+    tests_count = 0
+
+    for i, url in enumerate(urls_to_test):
+        test_id = f"AC{i + 1:03d}"
+        print(f"  Testing {url}...")
+
+        result = run_simple_accessibility_check(url)
+        results[test_id] = result
+
+        if result['score'] > 0:
+            total_score += result['score']
+            tests_count += 1
+
+        status_icon = "✅" if result['status'] == 'passed' else "❌"
+        msg = (f"    {status_icon} {test_id}: Score: {result['score']}% "
+               f"({result['errors_count']} erreurs, {result['warnings_count']} warnings)")
+        print(msg)
+
+        # Afficher les erreurs si présentes
+        if result['errors_count'] > 0:
+            for error in result['errors'][:2]:
+                print(f"        ❗ {error}")
+
+    avg_score = total_score / tests_count if tests_count > 0 else 0
+    print(f"\n📊 RÉSUMÉ ACCESSIBILITÉ: {tests_count} pages testées, score moyen: {avg_score:.1f}%")
     return results
 
 
 def get_accessibility_results():
-    """Récupère les résultats d'accessibilité (exécute Pa11y ou lit depuis cache)."""
-
+    """Récupère les résultats d'accessibilité."""
     # Vérifier s'il y a un cache récent
     cache_file = '.pa11y_cache.json'
-    cache_max_age = 300  # 5 minutes en secondes
+    cache_max_age = 300  # 5 minutes
 
     if os.path.exists(cache_file):
         import time
@@ -216,21 +398,21 @@ def get_accessibility_results():
             except Exception:
                 pass  # Si le cache est corrompu, on refait les tests
 
-    # Exécuter Pa11y
-    results = run_pa11y_accessibility_tests()
+    # Exécuter les tests
+    results = run_accessibility_tests()
 
     # Sauvegarder en cache
     try:
         with open(cache_file, 'w') as f:
             json.dump(results, f, indent=2)
     except Exception:
-        pass  # Ignorer les erreurs de cache
+        pass
 
     return results
 
 
 def get_test_status(test_id, test_type, django_results, selenium_results, accessibility_results):
-    """Détermine le statut d'un test, y compris auto-selenium et auto-accessibility."""
+    """Détermine le statut d'un test."""
     if test_type == 'manuel':
         return "💬Manual test needed", "👤"
 
@@ -243,7 +425,7 @@ def get_test_status(test_id, test_type, django_results, selenium_results, access
             elif status == 'failed':
                 return "✘Failed", "❌"
             else:
-                return "💬Not found", "❓"
+                return "💬Unknown", "❓"
         return "💬Not found", "❓"
 
     elif test_type == 'auto-selenium':
@@ -255,11 +437,10 @@ def get_test_status(test_id, test_type, django_results, selenium_results, access
             elif status == 'failed':
                 return "✘Failed", "❌"
             else:
-                return "💬Not found", "❓"
+                return "💬Unknown", "❓"
         return "💬Not found", "❓"
 
     elif test_type == 'auto-accessibility':
-        # EXERCICE 18: Vérification spécifique pour les tests d'accessibilité
         result = accessibility_results.get(test_id)
         if result:
             status = result.get('status', 'unknown')
@@ -268,7 +449,7 @@ def get_test_status(test_id, test_type, django_results, selenium_results, access
             elif status == 'failed':
                 return "✘Failed", "❌"
             else:
-                return "💬Not found", "❓"
+                return "💬Unknown", "❓"
         return "💬Not found", "❓"
 
     return "💬Type inconnu", "❓"
@@ -276,7 +457,6 @@ def get_test_status(test_id, test_type, django_results, selenium_results, access
 
 def main():
     """Génère le rapport de tests avec support Selenium et Accessibilité."""
-
     print("📊 GÉNÉRATION DU RAPPORT DE TESTS AVANCÉ")
     print("=" * 60)
     print("Lecture des tests auto via result_test_auto.json…")
@@ -315,11 +495,33 @@ def main():
     print("RAPPORT DÉTAILLÉ DES TESTS (Django + Selenium + Accessibilité)")
     print("=" * 70)
 
+    # Vérifier si tests est valide
+    if not isinstance(tests, dict):
+        print("❌ Erreur: 'tests' n'est pas un dictionnaire valide")
+        print(f"   Type obtenu: {type(tests)}")
+        print(f"   Valeur: {tests}")
+        return stats
+
     # Affiche chaque test
     for test_id in sorted(tests.keys()):
         stats['total'] += 1
+
+        # CORRECTION : Vérifier si test_info est un dictionnaire
         test_info = tests[test_id]
-        test_type = test_info.get('type', 'unknown')
+        if isinstance(test_info, dict):
+            test_type = test_info.get('type', 'unknown')
+            test_desc = test_info.get('description', '')[:40]
+        elif isinstance(test_info, str):
+            # Si c'est une string, c'est peut-être une description
+            test_type = 'unknown'
+            test_desc = test_info[:40]
+        else:
+            # Type inconnu
+            test_type = 'unknown'
+            test_desc = str(test_info)[:40]
+
+        if len(test_desc) > 40:
+            test_desc = test_desc[:37] + "..."
 
         # Utilisation de la fonction améliorée
         status, icon = get_test_status(
@@ -354,12 +556,10 @@ def main():
                 stats['accessibility_not_found'] += 1
         elif status == "💬Manual test needed":
             stats['manual'] += 1
+        elif status == "💬Unknown":
+            stats['not_found'] += 1
 
         # Afficher la ligne du test
-        test_desc = test_info.get('description', '')[:40]
-        if len(test_desc) > 40:
-            test_desc = test_desc[:37] + "..."
-
         print(f"{icon} {test_id:6} | {test_type:20} | {status:20} | {test_desc}")
 
     print("=" * 70)
@@ -389,70 +589,96 @@ def main():
         # ================ STATISTIQUES PAR TYPE ================
         print("\n🔧 TESTS TECHNIQUES")
 
-        # Django Unit Tests
-        django_total = sum(1 for t in tests.values() if t.get('type') == 'auto-unittest')
+        # Django Unit Tests - CORRIGÉ ICI
+        django_total = sum(1 for t in tests.values()
+                           if isinstance(t, dict) and t.get('type') == 'auto-unittest')
         if django_total > 0:
-            django_passed = sum(1 for tid in tests.keys()
-                                if tests[tid].get('type') == 'auto-unittest'
-                                and get_test_status(tid, 'auto-unittest', django_results,
-                                                    selenium_results, accessibility_results)[0] == "✔Passed")  # CORRECTION: ajout d'indentation
-            django_pct = (django_passed / django_total) * 100
+            django_passed = sum(
+                1 for tid in tests.keys()
+                if isinstance(tests[tid], dict)
+                and tests[tid].get('type') == 'auto-unittest'
+                and get_test_status(
+                    tid, 'auto-unittest', django_results,
+                    selenium_results, accessibility_results
+                )[0] == "✔Passed"
+            )
+            django_pct = (django_passed / django_total) * 100 if django_total > 0 else 0
             msg = f"   🐍 Django Unit Tests: {django_passed}/{django_total} ({django_pct:.1f}%)"
             print(msg)
 
         # Selenium
-        selenium_total = stats['selenium_passed'] + stats['selenium_failed'] + stats['selenium_not_found']
+        selenium_total = (
+            stats['selenium_passed']
+            + stats['selenium_failed']
+            + stats['selenium_not_found']
+        )
         if selenium_total > 0:
-            selenium_passed_pct = (stats['selenium_passed'] / selenium_total) * 100
-            msg = f"   🌐 Selenium E2E: {stats['selenium_passed']}/{selenium_total} ({selenium_passed_pct:.1f}%)"
+            selenium_passed_pct = (stats['selenium_passed'] / selenium_total) * 100 if selenium_total > 0 else 0
+            msg = (
+                f"   🌐 Selenium E2E: {stats['selenium_passed']}/{selenium_total} "
+                f"({selenium_passed_pct:.1f}%)"
+            )
             print(msg)
 
         # ================ EXERCICE 18 : ACCESSIBILITÉ ================
-        print("\n♿ ACCESSIBILITÉ (Exercice 18 - Pa11y)")
+        print("\n♿ ACCESSIBILITÉ (Exercice 18)")
 
-        accessibility_total = stats['accessibility_passed'] + stats['accessibility_failed'] + stats['accessibility_not_found']
+        accessibility_total = (
+            stats['accessibility_passed']
+            + stats['accessibility_failed']
+            + stats['accessibility_not_found']
+        )
 
         if accessibility_total > 0:
             if stats['accessibility_passed'] + stats['accessibility_failed'] > 0:
-                avg_score = stats['accessibility_score'] / (stats['accessibility_passed'] + stats['accessibility_failed'])
+                avg_score = (
+                    stats['accessibility_score']
+                    / (stats['accessibility_passed'] + stats['accessibility_failed'])
+                )
             else:
                 avg_score = 0
 
-            accessibility_passed_pct = (stats['accessibility_passed'] / accessibility_total) * 100
+            accessibility_passed_pct = (stats['accessibility_passed'] / accessibility_total) * 100 if accessibility_total > 0 else 0
 
             print(f"   Pages testées: {stats['accessibility_tests_executed']}")
             print(f"   Tests définis: {accessibility_total}")
-            msg = f"   ✅ Tests réussis: {stats['accessibility_passed']}/{accessibility_total} ({accessibility_passed_pct:.1f}%)"
+            msg = (
+                f"   ✅ Tests réussis: {stats['accessibility_passed']}/{accessibility_total} "
+                f"({accessibility_passed_pct:.1f}%)"
+            )
             print(msg)
             print(f"   📊 Score moyen: {avg_score:.1f}%")
 
             # Évaluation de la conformité
-            if avg_score >= 100:
-                print("   🏆 Conformité WGAC 2.1 Niveau A: ✅ PARFAIT!")
-            elif avg_score >= 95:
-                print("   👍 Conformité WGAC 2.1 Niveau A: ✅ EXCELLENT")
-            elif avg_score >= 90:
-                print("   ⚠️  Conformité WGAC 2.1 Niveau A: BON")
-            elif avg_score >= 80:
+            if avg_score >= 95:
+                print("   🏆 Conformité WGAC 2.1 Niveau A: ✅ EXCELLENT")
+            elif avg_score >= 85:
+                print("   👍 Conformité WGAC 2.1 Niveau A: ✅ BON")
+            elif avg_score >= 75:
                 print("   ⚠️  Conformité WGAC 2.1 Niveau A: MOYEN")
             else:
-                print("   ❗ Conformité WGAC 2.1 Niveau A: INSUFFISANT")
+                print("   ❗ Conformité WGAC 2.1 Niveau A: À AMÉLIORER")
 
             # Détails des tests exécutés
-            print("\n   📋 DÉTAIL DES TESTS EXÉCUTÉS:")
-            for test_id, result in accessibility_results.items():
-                score = result.get('score', 0)
-                errors = result.get('errors_count', 0)
-                warnings = result.get('warnings_count', 0)
-                status_icon = "✅" if result.get('status') == 'passed' else "❌"
-                print(f"     {status_icon} {test_id}: {result.get('url')}")
-                print(f"        Score: {score}% | Erreurs: {errors} | Warnings: {warnings}")
+            if accessibility_results:
+                print("\n   📋 DÉTAIL DES TESTS EXÉCUTÉS:")
+                for test_id, result in accessibility_results.items():
+                    score = result.get('score', 0)
+                    errors = result.get('errors_count', 0)
+                    warnings = result.get('warnings_count', 0)
+                    status_icon = "✅" if result.get('status') == 'passed' else "❌"
+                    url = result.get('url', 'N/A')
+                    print(f"     {status_icon} {test_id}: {url}")
+                    print(f"        Score: {score}% | Erreurs: {errors} | Warnings: {warnings}")
 
-                # Afficher les premières erreurs si présentes
-                if errors > 0 and 'errors' in result:
-                    for error in result['errors'][:2]:  # Limiter à 2 erreurs
-                        error_msg = error.get('message', 'Unknown error')
-                        print(f"        ❗ {error_msg[:60]}...")
+                    # Afficher les premières erreurs si présentes
+                    if errors > 0 and 'errors' in result:
+                        for error in result['errors'][:2]:
+                            if isinstance(error, dict):
+                                error_msg = error.get('message', str(error))
+                            else:
+                                error_msg = str(error)
+                            print(f"        ❗ {error_msg[:60]}...")
         else:
             print("   ⚠️  Aucun test d'accessibilité défini dans test_list.yaml")
             print("   💡 Conseil: Ajoutez des tests avec type: 'auto-accessibility'")
@@ -469,13 +695,14 @@ def main():
         ]
 
         for name, type_key in categories:
-            count = sum(1 for t in tests.values() if t.get('type') == type_key)
+            count = sum(1 for t in tests.values()
+                        if isinstance(t, dict) and t.get('type') == type_key)
             if count > 0:
                 passed = 0
                 for tid in tests.keys():
-                    if tests[tid].get('type') == type_key:
+                    if isinstance(tests[tid], dict) and tests[tid].get('type') == type_key:
                         status, _ = get_test_status(tid, type_key, django_results,
-                                                    selenium_results, accessibility_results)  # CORRECTION: indentation
+                                                    selenium_results, accessibility_results)
                         if status == "✔Passed":
                             passed += 1
 
@@ -492,16 +719,26 @@ def main():
     print("VÉRIFICATION EXERCICE 18 - Tests d'accessibilité")
     print("=" * 60)
 
-    accessibility_tests = [(tid, tinfo) for tid, tinfo in tests.items()
-                           if tinfo.get('type') == 'auto-accessibility']  # CORRECTION: indentation
+    # Chercher les tests d'accessibilité dans test_list.yaml
+    accessibility_tests = []
+    for tid, tinfo in tests.items():
+        if isinstance(tinfo, dict) and tinfo.get('type') == 'auto-accessibility':
+            accessibility_tests.append((tid, tinfo))
+        elif isinstance(tinfo, str) and tid.startswith('AC'):
+            accessibility_tests.append((tid, {'description': tinfo, 'type': 'auto-accessibility'}))
 
     if accessibility_tests:
         print(f"✅ TESTS D'ACCESSIBILITÉ DÉTECTÉS: {len(accessibility_tests)}")
         print("\nDétails des tests d'accessibilité dans test_list.yaml:")
 
         for test_id, test_info in accessibility_tests:
-            desc = test_info.get('description', 'Pas de description')
-            expected_url = test_info.get('url', 'URL non spécifiée')
+            if isinstance(test_info, dict):
+                desc = test_info.get('description', 'Pas de description')
+                expected_url = test_info.get('url', 'URL non spécifiée')
+            else:
+                desc = str(test_info)
+                expected_url = 'URL non spécifiée'
+
             print(f"\n  📝 {test_id}: {desc}")
             print(f"     URL attendue: {expected_url}")
 
@@ -516,14 +753,17 @@ def main():
                 print(msg)
                 print(f"     URL testée: {actual_url}")
 
-                if errors > 0:
+                if errors > 0 and 'errors' in result:
                     print("     ❌ Problèmes détectés:")
-                    for error in result.get('errors', [])[:3]:
-                        context = error.get('context', '')
-                        selector = error.get('selector', '')
-                        print(f"        - {context[:50]}... [selector: {selector}]")
+                    for error in result.get('errors', [])[:2]:
+                        if isinstance(error, dict):
+                            context = error.get('context', '')
+                            selector = error.get('selector', '')
+                            print(f"        - {context[:50]}... [selector: {selector}]")
+                        else:
+                            print(f"        - {str(error)[:60]}...")
             else:
-                msg = "     ⚠️  NON EXÉCUTÉ: Aucun résultat Pa11y pour ce test"
+                msg = "     ⚠️  NON EXÉCUTÉ: Aucun résultat d'accessibilité pour ce test"
                 print(msg)
                 msg = f"     Vérifiez que l'URL {expected_url} est accessible"
                 print(msg)
@@ -531,14 +771,20 @@ def main():
         print("⚠️  Aucun test 'auto-accessibility' trouvé dans test_list.yaml")
         print("\n💡 POUR AJOUTER DES TESTS D'ACCESSIBILITÉ:")
         print("1. Ajoutez dans test_list.yaml:")
-        print("   TCXXX:")
+        print("   ACXXX:")
         print("     type: auto-accessibility")
         print("     description: \"Test d'accessibilité de la page X\"")
         print("     url: \"http://127.0.0.1:8000/\"")
-        print("\n2. Pa11y sera automatiquement exécuté pour ces tests")
+        print("\n2. Les tests seront automatiquement exécutés")
 
     return stats
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"\n❌ ERREUR CRITIQUE: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

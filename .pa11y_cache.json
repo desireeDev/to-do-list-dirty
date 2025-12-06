@@ -1,0 +1,35 @@
+{
+  "AC001": {
+    "url": "http://127.0.0.1:8000/",
+    "status": "failed",
+    "score": 0,
+    "errors_count": 1,
+    "warnings_count": 0,
+    "errors": [
+      "[WinError 2] Le fichier sp\u00e9cifi\u00e9 est introuvable"
+    ],
+    "warnings": []
+  },
+  "AC002": {
+    "url": "http://127.0.0.1:8000/update_task/",
+    "status": "failed",
+    "score": 0,
+    "errors_count": 1,
+    "warnings_count": 0,
+    "errors": [
+      "[WinError 2] Le fichier sp\u00e9cifi\u00e9 est introuvable"
+    ],
+    "warnings": []
+  },
+  "AC003": {
+    "url": "http://127.0.0.1:8000/delete_task/",
+    "status": "failed",
+    "score": 0,
+    "errors_count": 1,
+    "warnings_count": 0,
+    "errors": [
+      "[WinError 2] Le fichier sp\u00e9cifi\u00e9 est introuvable"
+    ],
+    "warnings": []
+  }
+}
