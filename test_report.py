@@ -11,6 +11,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 
 
 def load_test_list():
@@ -32,16 +33,30 @@ def load_test_list():
 
 
 def load_django_results():
-    """Charge les résultats des tests Django depuis JSON."""
-    try:
-        with open('result_test_auto.json', 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except FileNotFoundError:
+    """Charge les résultats des tests Django depuis JSON avec gestion d'encodage."""
+    json_file = 'result_test_auto.json'
+
+    if not os.path.exists(json_file):
         print("⚠️  result_test_auto.json non trouvé")
         return {}
-    except json.JSONDecodeError as e:
-        print(f"⚠️  Erreur JSON: {e}")
-        return {}
+
+    # Essayer différents encodages
+    encodings_to_try = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
+
+    for encoding in encodings_to_try:
+        try:
+            with open(json_file, 'r', encoding=encoding) as f:
+                content = f.read()
+                data = json.loads(content)
+                print(f"✅ Fichier JSON chargé avec succès (encodage: {encoding})")
+                return data
+        except UnicodeDecodeError:
+            continue
+        except json.JSONDecodeError:
+            continue
+
+    print("❌ Impossible de lire le fichier JSON avec les encodages disponibles")
+    return {}
 
 
 def load_selenium_results():
@@ -72,6 +87,174 @@ def load_selenium_results():
         return {}
 
 
+def create_test_task_for_accessibility():
+    """Crée une tâche de test via Selenium pour obtenir un ID valide."""
+    print("\n🛠️  Création d'une tâche de test pour obtenir un ID...")
+
+    try:
+        # Importer Selenium
+        from selenium import webdriver
+        from selenium.webdriver.chrome.service import Service
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.chrome.options import Options
+
+        # Configuration Chrome en mode headless
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+
+        try:
+            from webdriver_manager.chrome import ChromeDriverManager
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+        except Exception:
+            # Fallback si webdriver_manager n'est pas disponible
+            driver = webdriver.Chrome(options=chrome_options)
+
+        driver.implicitly_wait(5)
+
+        try:
+            # Aller sur la page d'accueil
+            driver.get("http://127.0.0.1:8000/")
+            time.sleep(2)
+
+            # Créer une nouvelle tâche
+            task_name = f"Test Accessibilité {int(time.time())}"
+
+            # Trouver le champ de saisie
+            input_selectors = [
+                (By.NAME, "title"),
+                (By.ID, "id_title"),
+                (By.CSS_SELECTOR, 'input[type="text"]'),
+                (By.CSS_SELECTOR, 'textarea[name="title"]'),
+                (By.CSS_SELECTOR, 'input[name="title"]'),
+            ]
+
+            input_field = None
+            for by, selector in input_selectors:
+                try:
+                    input_field = driver.find_element(by, selector)
+                    if input_field.is_displayed():
+                        break
+                except Exception:
+                    continue
+
+            if not input_field:
+                # Dernière tentative
+                try:
+                    inputs = driver.find_elements(By.CSS_SELECTOR, 'input[type="text"], textarea')
+                    for inp in inputs:
+                        if inp.is_displayed():
+                            input_field = inp
+                            break
+                except Exception:
+                    pass
+
+            if not input_field:
+                print("❌ Impossible de trouver le champ de saisie")
+                driver.quit()
+                return None
+
+            # Remplir le champ
+            input_field.clear()
+            input_field.send_keys(task_name)
+            time.sleep(1)
+
+            # Trouver le bouton d'ajout
+            submit_button = None
+            button_texts = ['Ajouter', 'Add', 'Submit', 'Créer', 'Create', 'Save', 'Valider']
+
+            for text in button_texts:
+                try:
+                    buttons = driver.find_elements(
+                        By.XPATH, f"//button[contains(text(), '{text}')]"
+                    )
+                    for btn in buttons:
+                        if btn.is_displayed():
+                            submit_button = btn
+                            break
+                    if submit_button:
+                        break
+                except Exception:
+                    continue
+
+            if not submit_button:
+                # Chercher par type
+                try:
+                    submit_button = driver.find_element(
+                        By.CSS_SELECTOR, 'button[type="submit"], input[type="submit"]'
+                    )
+                except Exception:
+                    pass
+
+            if not submit_button:
+                # Premier bouton visible
+                try:
+                    buttons = driver.find_elements(By.TAG_NAME, 'button')
+                    for btn in buttons:
+                        if btn.is_displayed() and btn.is_enabled():
+                            submit_button = btn
+                            break
+                except Exception:
+                    pass
+
+            if not submit_button:
+                print("❌ Impossible de trouver le bouton d'ajout")
+                driver.quit()
+                return None
+
+            # Cliquer pour créer la tâche
+            submit_button.click()
+            time.sleep(2)
+
+            # Récupérer l'ID de la tâche créée
+            # Chercher des liens ou éléments contenant l'ID
+            page_source = driver.page_source
+
+            # Chercher des patterns d'ID dans les URLs
+            import re
+            id_patterns = [
+                r'/update_task/(\d+)/',
+                r'/delete_task/(\d+)/',
+                r'/task/(\d+)/',
+                r'/tasks/(\d+)/',
+                r'/edit/(\d+)/',
+            ]
+
+            task_id = None
+            for pattern in id_patterns:
+                matches = re.findall(pattern, page_source)
+                if matches:
+                    # Prendre le plus grand ID (le plus récent)
+                    ids = [int(match) for match in matches]
+                    if ids:
+                        task_id = max(ids)
+                        break
+
+            if task_id:
+                print(f"✅ Tâche créée avec ID: {task_id}")
+            else:
+                print("⚠️  Impossible de trouver l'ID, utilisation de l'ID 1 par défaut")
+                task_id = 1
+
+            driver.quit()
+            return task_id
+
+        except Exception as e:
+            print(f"❌ Erreur lors de la création de la tâche: {e}")
+            driver.quit()
+            return None
+
+    except ImportError as e:
+        print(f"⚠️  Selenium non disponible: {e}")
+        print("💡 Installation: pipenv install selenium webdriver-manager")
+        return None
+    except Exception as e:
+        print(f"❌ Erreur générale: {e}")
+        return None
+
+
 def run_simple_accessibility_check(url):
     """Vérifie l'accessibilité basique d'une URL."""
     try:
@@ -85,20 +268,43 @@ def run_simple_accessibility_check(url):
                 'score': 0,
                 'errors_count': 1,
                 'warnings_count': 0,
-                'errors': ['requests non installé. Installez: pip install requests'],
+                'errors': ['requests non installé. Installez: pipenv install requests'],
                 'warnings': []
             }
 
-        response = requests.get(url, timeout=10)
+        # Vérifier d'abord si le serveur est accessible
+        try:
+            print(f"    🔍 Test de {url}...")
+            response = requests.get(url, timeout=5)
 
-        if response.status_code != 200:
+            if response.status_code != 200:
+                return {
+                    'url': url,
+                    'status': 'failed',
+                    'score': 0,
+                    'errors_count': 1,
+                    'warnings_count': 0,
+                    'errors': [f'HTTP {response.status_code} - Serveur en erreur'],
+                    'warnings': []
+                }
+        except requests.exceptions.ConnectionError:
             return {
                 'url': url,
                 'status': 'failed',
                 'score': 0,
                 'errors_count': 1,
                 'warnings_count': 0,
-                'errors': [f'HTTP {response.status_code}'],
+                'errors': ['❌ Serveur inaccessible - Lancez: pipenv run python manage.py runserver'],
+                'warnings': []
+            }
+        except requests.exceptions.Timeout:
+            return {
+                'url': url,
+                'status': 'failed',
+                'score': 0,
+                'errors_count': 1,
+                'warnings_count': 0,
+                'errors': ['⏱️  Timeout - Serveur trop lent'],
                 'warnings': []
             }
 
@@ -128,15 +334,15 @@ def run_simple_accessibility_check(url):
         warnings = []
 
         if not checks['has_title']:
-            errors.append("Pas de titre de page (<title>)")
+            errors.append("❌ Pas de titre de page (<title>)")
         if not checks['has_lang']:
-            errors.append("Attribut de langue manquant (lang='fr')")
+            errors.append("❌ Attribut de langue manquant (lang='fr')")
         if not checks['has_alt'] and '<img' in html.lower():
-            warnings.append("Images sans texte alternatif détectées")
+            warnings.append("⚠️  Images sans texte alternatif détectées")
         if not checks['has_labels'] and checks['has_forms']:
-            warnings.append("Formulaires sans labels détectés")
+            warnings.append("⚠️  Formulaires sans labels détectés")
         if not checks['has_aria']:
-            warnings.append("Pas d'attributs ARIA détectés")
+            warnings.append("ℹ️  Pas d'attributs ARIA détectés")
 
         status = 'passed' if score >= 80 and len(errors) == 0 else 'failed'
 
@@ -158,21 +364,37 @@ def run_simple_accessibility_check(url):
             'score': 0,
             'errors_count': 1,
             'warnings_count': 0,
-            'errors': [str(e)],
+            'errors': [f'Erreur: {str(e)}'],
             'warnings': []
         }
 
 
 def run_accessibility_tests():
     """EXERCICE 18: Exécute les tests d'accessibilité."""
-    print("\n♿ EXÉCUTION DES TESTS D'ACCESSIBILITÉ...")
+    print("\n" + "=" * 60)
+    print("♿ EXÉCUTION DES TESTS D'ACCESSIBILITÉ (EXERCICE 18)")
+    print("=" * 60)
 
-    # TES URLs spécifiques
-    urls_to_test = [
-        "http://127.0.0.1:8000/",  # Page d'accueil
-        "http://127.0.0.1:8000/update_task/",  # Modification
-        "http://127.0.0.1:8000/delete_task/",  # Suppression
-    ]
+    # Créer d'abord une tâche pour avoir un ID valide
+    task_id = create_test_task_for_accessibility()
+
+    # URLs avec ID dynamique
+    if task_id:
+        urls_to_test = [
+            "http://127.0.0.1:8000/",  # Page d'accueil
+            f"http://127.0.0.1:8000/update_task/{task_id}/",  # Modification avec ID
+            f"http://127.0.0.1:8000/delete_task/{task_id}/",  # Suppression avec ID
+        ]
+        print(f"\n📋 3 pages à tester avec ID de tâche: {task_id}")
+    else:
+        # Si on ne peut pas créer de tâche, tester seulement l'accueil
+        urls_to_test = [
+            "http://127.0.0.1:8000/",  # Page d'accueil seulement
+        ]
+        print("\n📋 1 page à tester (accueil seulement)")
+
+    for i, url in enumerate(urls_to_test):
+        print(f"   {i + 1}. {url}")
 
     # Vérifier si Pa11y est disponible
     pa11y_available = False
@@ -186,10 +408,10 @@ def run_accessibility_tests():
         pa11y_available = False
 
     if pa11y_available:
-        print("✅ Pa11y détecté, utilisation des tests complets")
+        print("\n✅ Pa11y détecté, utilisation des tests complets")
         return run_pa11y_tests(urls_to_test)
     else:
-        print("⚠️  Pa11y non disponible, utilisation des tests simplifiés")
+        print("\n⚠️  Pa11y non disponible, utilisation des tests simplifiés")
         print("💡 Pour les tests complets: npm install -g pa11y")
         return run_simple_accessibility_tests(urls_to_test)
 
@@ -202,7 +424,7 @@ def run_pa11y_tests(urls_to_test):
 
     for i, url in enumerate(urls_to_test):
         test_id = f"AC{i + 1:03d}"
-        print(f"  Testing {url}...")
+        print(f"\n  🧪 Test {test_id}: {url}")
 
         try:
             # Vérifier si la page est accessible
@@ -219,7 +441,7 @@ def run_pa11y_tests(urls_to_test):
                         'errors': [f'HTTP {response.status_code}'],
                         'warnings': []
                     }
-                    print(f"    ❌ {test_id}: Page inaccessible (HTTP {response.status_code})")
+                    print(f"    ❌ Page inaccessible (HTTP {response.status_code})")
                     continue
             except ImportError:
                 pass  # Continue même si requests n'est pas installé
@@ -291,7 +513,7 @@ def run_pa11y_tests(urls_to_test):
                     tests_count += 1
 
                     status_icon = "✅" if status == 'passed' else "❌"
-                    msg = (f"    {status_icon} {test_id}: Score: {score}% "
+                    msg = (f"    {status_icon} Score: {score}% "
                            f"({len(errors)} erreurs, {len(warnings)} warnings)")
                     print(msg)
 
@@ -306,7 +528,7 @@ def run_pa11y_tests(urls_to_test):
                         'errors': ['Erreur de parsing JSON Pa11y'],
                         'warnings': []
                     }
-                    print(f"    ❌ {test_id}: Erreur de parsing JSON")
+                    print("    ❌ Erreur de parsing JSON")
                     print(f"    Sortie: {result.stdout[:100]}...")
             else:
                 results[test_id] = {
@@ -318,7 +540,7 @@ def run_pa11y_tests(urls_to_test):
                     'errors': ['Échec d\'exécution Pa11y'],
                     'warnings': []
                 }
-                print(f"    ❌ {test_id}: Échec d'exécution")
+                print("    ❌ Échec d'exécution")
 
         except subprocess.TimeoutExpired:
             results[test_id] = {
@@ -330,7 +552,7 @@ def run_pa11y_tests(urls_to_test):
                 'errors': ['Timeout Pa11y'],
                 'warnings': []
             }
-            print(f"    ⏱️  {test_id}: Timeout")
+            print("    ⏱️  Timeout")
         except Exception as e:
             results[test_id] = {
                 'url': url,
@@ -341,10 +563,14 @@ def run_pa11y_tests(urls_to_test):
                 'errors': [str(e)],
                 'warnings': []
             }
-            print(f"    ❌ {test_id}: Erreur: {e}")
+            print(f"    ❌ Erreur: {e}")
 
-    avg_score = total_score / tests_count if tests_count > 0 else 0
-    print(f"\n📊 RÉSUMÉ ACCESSIBILITÉ: {tests_count} pages testées, score moyen: {avg_score:.1f}%")
+    if tests_count > 0:
+        avg_score = total_score / tests_count
+        print(f"\n📊 RÉSUMÉ ACCESSIBILITÉ: {tests_count} pages testées, score moyen: {avg_score:.1f}%")
+    else:
+        print("\n📊 RÉSUMÉ ACCESSIBILITÉ: Aucune page testée avec succès")
+
     return results
 
 
@@ -356,7 +582,7 @@ def run_simple_accessibility_tests(urls_to_test):
 
     for i, url in enumerate(urls_to_test):
         test_id = f"AC{i + 1:03d}"
-        print(f"  Testing {url}...")
+        print(f"\n  🧪 Test {test_id}: {url}")
 
         result = run_simple_accessibility_check(url)
         results[test_id] = result
@@ -366,17 +592,21 @@ def run_simple_accessibility_tests(urls_to_test):
             tests_count += 1
 
         status_icon = "✅" if result['status'] == 'passed' else "❌"
-        msg = (f"    {status_icon} {test_id}: Score: {result['score']}% "
+        msg = (f"    {status_icon} Score: {result['score']}% "
                f"({result['errors_count']} erreurs, {result['warnings_count']} warnings)")
         print(msg)
 
         # Afficher les erreurs si présentes
         if result['errors_count'] > 0:
-            for error in result['errors'][:2]:
-                print(f"        ❗ {error}")
+            for error in result['errors']:
+                print(f"        {error}")
 
-    avg_score = total_score / tests_count if tests_count > 0 else 0
-    print(f"\n📊 RÉSUMÉ ACCESSIBILITÉ: {tests_count} pages testées, score moyen: {avg_score:.1f}%")
+    if tests_count > 0:
+        avg_score = total_score / tests_count
+        print(f"\n📊 RÉSUMÉ ACCESSIBILITÉ: {tests_count} pages testées, score moyen: {avg_score:.1f}%")
+    else:
+        print("\n📊 RÉSUMÉ ACCESSIBILITÉ: Aucune page testée avec succès")
+
     return results
 
 
@@ -466,12 +696,12 @@ def main():
     django_results = load_django_results()
     selenium_results = load_selenium_results()
 
+    print()
+
     # EXERCICE 18: Récupérer les résultats d'accessibilité
     accessibility_results = get_accessibility_results()
 
-    print()
-    print("✅ TOUS LES TESTS ONT ÉTÉ CHARGÉS")
-    print()
+    print("\n✅ TOUS LES TESTS ONT ÉTÉ CHARGÉS")
 
     # Initialise les compteurs
     stats = {

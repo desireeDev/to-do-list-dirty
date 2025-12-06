@@ -10,9 +10,6 @@ import json
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from webdriver_manager.chrome import ChromeDriverManager
 
 
@@ -48,11 +45,11 @@ class TodoListSeleniumTests:
         except Exception as e:
             print(f"❌ Erreur lors du setup Selenium: {e}")
             print("\n💡 Solutions possibles:")
-            print("   1. Vérifiez que Chrome est installé")
-            print("   2. Essayez: pip install webdriver-manager --upgrade")
-            print("   3. Ou installez ChromeDriver manuellement:")
-            print("      - Téléchargez depuis https://chromedriver.chromium.org/")
-            print("      - Placez-le dans /usr/local/bin/ (Mac/Linux) ou C:\\Windows\\System32\\ (Windows)")
+            print("   1. Vérifiez que Chrome est installé")
+            print("   2. Essayez: pip install webdriver-manager --upgrade")
+            print("   3. Ou installez ChromeDriver manuellement:")
+            print("      - Téléchargez depuis https://chromedriver.chromium.org/")
+            print("      - Placez-le dans /usr/local/bin/ (Mac/Linux) ou C:\\Windows\\System32\\ (Windows)")
             raise e
 
     def teardown(self):
@@ -62,18 +59,16 @@ class TodoListSeleniumTests:
             print("✅ Driver Selenium fermé")
 
     def cleanup_existing_tasks(self):
-        """Nettoie rapidement les tâches existantes."""
+        """Nettoie les tâches existantes."""
         try:
-            print("   🧹 Nettoyage rapide...")
+            print("   🧹 Nettoyage rapide...")
             self.driver.get(self.base_url)
             time.sleep(1)
-            
             # Chercher les boutons Supprimer
             try:
                 delete_buttons = self.driver.find_elements(
                     By.XPATH, "//button[contains(text(), 'Supprimer') or contains(text(), 'Delete')]"
                 )
-                
                 # Supprimer seulement 5 premières pour aller vite
                 max_to_delete = min(5, len(delete_buttons))
                 for i in range(max_to_delete):
@@ -84,22 +79,19 @@ class TodoListSeleniumTests:
                             time.sleep(0.3)
                             self.handle_delete_confirmation_fast()
                             time.sleep(0.3)
-                    except:
+                    except Exception:
                         continue
-                
                 if delete_buttons:
-                    print(f"   ✅ {max_to_delete} tâches nettoyées")
+                    print(f"   ✅ {max_to_delete} tâches nettoyées")
                 else:
-                    print("   ✅ Aucune tâche à nettoyer")
-                    
+                    print("   ✅ Aucune tâche à nettoyer")
             except Exception as e:
-                print(f"   ⚠ Erreur nettoyage: {e}")
-            
+                print(f"⚠ Erreur nettoyage: {e}")
         except Exception as e:
-            print(f"   ⚠ Erreur générale: {e}")
+            print(f"   ⚠ Erreur générale: {e}")
 
     def handle_delete_confirmation_fast(self):
-        """Gère rapidement la confirmation de suppression."""
+        """Gère la confirmation de suppression."""
         try:
             time.sleep(0.2)
             # Essayer de trouver un bouton de confirmation
@@ -109,7 +101,7 @@ class TodoListSeleniumTests:
                 "//button[contains(text(), 'Confirmer')]",
                 "//button[contains(text(), 'Confirm')]"
             ]
-            
+
             for selector in confirm_selectors:
                 try:
                     confirm_btn = self.driver.find_element(By.XPATH, selector)
@@ -117,63 +109,63 @@ class TodoListSeleniumTests:
                         confirm_btn.click()
                         time.sleep(0.2)
                         return True
-                except:
+                except Exception:
                     continue
             return True
-        except:
+        except Exception:
             return True
 
     def test_count_create_delete_tasks_fast(self):
-        """Test E2E rapide : créer 10 tâches, les supprimer."""
+        """Test E2E : créer 10 tâches, les supprimer."""
         test_id = "TE001"
         try:
             print(f"🧪 Test {test_id}: Créer et supprimer 10 tâches")
-            
-            # 1. Nettoyer rapidement
+
+            # 1. Nettoyage
             self.cleanup_existing_tasks()
-            
+
             # 2. Aller sur la page
             self.driver.get(self.base_url)
             time.sleep(1)
-            
+
             # 3. Créer 10 tâches avec des noms propres
-            print("   🏗️  Création de 10 tâches...")
+            print("   🏗️  Création de 10 tâches...")
             created_tasks = []
-            
+
             for i in range(10):
                 task_name = f"Tâche Selenium {i + 1}"  # Nom propre
-                print(f"   Création {i+1}/10: {task_name}")
-                
+                print(f"   Création {i + 1}/10: {task_name}")
+
                 if self.create_task_fast(task_name):
                     created_tasks.append(task_name)
-                    print(f"   ✅ Créée")
+                    print("   ✅ Créée")
                 else:
-                    print(f"   ❌ Échec création {i+1}")
-                
+                    print(f"   ❌ Échec création {i + 1}")
+
                 time.sleep(0.5)
-            
-            print(f"   📊 Résultat création: {len(created_tasks)}/10 réussies")
-            
+
+            print(f"   📊 Résultat création: {len(created_tasks)}/10 réussies")
+
             if not created_tasks:
                 raise Exception("Aucune tâche n'a pu être créée")
-            
+
             # 4. Supprimer les tâches créées
-            print("   🗑️  Suppression des tâches...")
+            print("   🗑️  Suppression des tâches...")
             success_deletions = 0
-            
+
             for i, task_name in enumerate(created_tasks):
-                print(f"   Suppression {i+1}/{len(created_tasks)}: {task_name}")
-                
+                print(f"   Suppression {i + 1}/{len(created_tasks)}: {task_name}")
+
                 if self.delete_task_fast(task_name):
                     success_deletions += 1
-                    print(f"   ✅ Supprimée")
+                    print("   ✅ Supprimée")
                 else:
-                    print(f"   ❌ Échec suppression")
-                
+                    print("   ❌ Échec suppression")
+
                 time.sleep(0.5)
-            
-            print(f"   📊 Résultat suppression: {success_deletions}/{len(created_tasks)} réussies")
-            
+
+            print(f"   📊 Résultat suppression: {success_deletions}/{len(created_tasks)} réussies")
+
             # Validation
             if success_deletions > 0:
                 print(f"✅ Test {test_id} RÉUSSI!")
@@ -183,7 +175,7 @@ class TodoListSeleniumTests:
                 }
             else:
                 raise Exception("Aucune tâche n'a pu être supprimée")
-                
+
         except Exception as e:
             print(f"❌ Test {test_id} ÉCHOUÉ: {str(e)}")
             self.results[test_id] = {
@@ -192,15 +184,15 @@ class TodoListSeleniumTests:
             }
 
     def create_task_fast(self, task_name):
-        """Crée une tâche - VERSION RAPIDE ET FIABLE."""
+        """Crée une tâche."""
         try:
             # S'assurer qu'on est sur la bonne page
             self.driver.get(self.base_url)
             time.sleep(0.5)
-            
+
             # 1. Trouver le champ de saisie
             input_field = None
-            
+
             # Essayer plusieurs sélecteurs courants
             selectors = [
                 (By.NAME, "title"),
@@ -210,15 +202,15 @@ class TodoListSeleniumTests:
                 (By.CSS_SELECTOR, 'input[name="title"]'),
                 (By.CSS_SELECTOR, 'input.form-control')
             ]
-            
+
             for by, selector in selectors:
                 try:
                     input_field = self.driver.find_element(by, selector)
                     if input_field.is_displayed():
                         break
-                except:
+                except Exception:
                     continue
-            
+
             if not input_field:
                 # Dernière tentative: premier input de type text
                 try:
@@ -227,20 +219,20 @@ class TodoListSeleniumTests:
                         if inp.is_displayed():
                             input_field = inp
                             break
-                except:
+                except Exception:
                     pass
-            
+
             if not input_field:
                 return False
-            
+
             # 2. Remplir le champ
             input_field.clear()
             input_field.send_keys(task_name)
             time.sleep(0.1)
-            
+
             # 3. Trouver le bouton d'ajout
             submit_button = None
-            
+
             # Chercher par texte d'abord
             button_texts = ['Ajouter', 'Add', 'Submit', 'Créer', 'Create', 'Save', 'Valider']
             for text in button_texts:
@@ -255,18 +247,18 @@ class TodoListSeleniumTests:
                             break
                     if submit_button:
                         break
-                except:
+                except Exception:
                     continue
-            
+
             # Si pas trouvé, chercher par type
             if not submit_button:
                 try:
                     submit_button = self.driver.find_element(
                         By.CSS_SELECTOR, 'button[type="submit"], input[type="submit"]'
                     )
-                except:
+                except Exception:
                     pass
-            
+
             # Si toujours pas trouvé, premier bouton visible
             if not submit_button:
                 try:
@@ -275,34 +267,34 @@ class TodoListSeleniumTests:
                         if btn.is_displayed() and btn.is_enabled():
                             submit_button = btn
                             break
-                except:
+                except Exception:
                     pass
-            
+
             if not submit_button:
                 return False
-            
+
             # 4. Cliquer
             submit_button.click()
             time.sleep(0.5)  # Attendre la création
-            
-            # 5. Vérification rapide
+
+            # 5. Vérification
             time.sleep(0.5)
             return True
-            
+
         except Exception as e:
-            print(f"     ⚠ Erreur création: {e}")
+            print(f"     ⚠ Erreur création: {e}")
             return False
 
     def delete_task_fast(self, task_name):
-        """Supprime une tâche - VERSION RAPIDE."""
+        """Supprime une tâche."""
         try:
             # Rafraîchir la page
             self.driver.refresh()
             time.sleep(0.5)
-            
+
             # Chercher UN bouton Supprimer (le premier)
             delete_button = None
-            
+
             # Chercher par texte d'abord
             try:
                 delete_buttons = self.driver.find_elements(
@@ -313,9 +305,9 @@ class TodoListSeleniumTests:
                         if btn.is_displayed():
                             delete_button = btn
                             break
-            except:
+            except Exception:
                 pass
-            
+
             # Chercher par classe
             if not delete_button:
                 try:
@@ -326,68 +318,68 @@ class TodoListSeleniumTests:
                         if btn.is_displayed():
                             delete_button = btn
                             break
-                except:
+                except Exception:
                     pass
-            
+
             if not delete_button:
                 # Pas de bouton Supprimer trouvé
                 return False
-            
+
             # Cliquer
             delete_button.click()
             time.sleep(0.3)
-            
-            # Gérer confirmation rapide
+
+            # Gérer confirmation
             self.handle_delete_confirmation_fast()
             time.sleep(0.5)
-            
+
             return True
-            
+
         except Exception as e:
-            print(f"     ⚠ Erreur suppression: {e}")
+            print(f"     ⚠ Erreur suppression: {e}")
             return False
 
     def test_add_delete_specific_task_fast(self):
-        """Test spécifique rapide."""
+        """Test spécifique."""
         test_id = "TE002"
         try:
             print(f"🧪 Test {test_id}: Tâche spécifique")
-            
+
             # Aller sur la page
             self.driver.get(self.base_url)
             time.sleep(1)
-            
+
             # 1. Créer première tâche
             first_task = "Première tâche importante"
-            print(f"   Création 1: {first_task}")
-            
+            print(f"   Création 1: {first_task}")
+
             if not self.create_task_fast(first_task):
-                raise Exception(f"Échec création 1")
-            print(f"   ✅ Créée")
+                raise Exception("Échec création 1")
+            print("   ✅ Créée")
             time.sleep(0.5)
-            
+
             # 2. Créer deuxième tâche
             second_task = "Deuxième tâche à supprimer"
-            print(f"   Création 2: {second_task}")
-            
+            print(f"   Création 2: {second_task}")
+
             if not self.create_task_fast(second_task):
-                raise Exception(f"Échec création 2")
-            print(f"   ✅ Créée")
+                raise Exception("Échec création 2")
+            print("   ✅ Créée")
             time.sleep(0.5)
-            
+
             # 3. Supprimer deuxième tâche
-            print(f"   Suppression: {second_task}")
+            print(f"   Suppression: {second_task}")
             if not self.delete_task_fast(second_task):
-                raise Exception(f"Échec suppression")
-            print(f"   ✅ Supprimée")
+                raise Exception("Échec suppression")
+            print("   ✅ Supprimée")
             time.sleep(0.5)
-            
+
             # 4. Vérifier que première existe toujours
             self.driver.refresh()
             time.sleep(0.5)
-            
+
             if first_task in self.driver.page_source:
-                print(f"   ✅ Première tâche toujours présente")
+                print("   ✅ Première tâche toujours présente")
                 print(f"✅ Test {test_id} RÉUSSI!")
                 self.results[test_id] = {
                     "status": "passed",
@@ -395,7 +387,7 @@ class TodoListSeleniumTests:
                 }
             else:
                 raise Exception("Première tâche a disparu")
-                
+
         except Exception as e:
             print(f"❌ Test {test_id} ÉCHOUÉ: {str(e)}")
             self.results[test_id] = {
@@ -404,46 +396,46 @@ class TodoListSeleniumTests:
             }
 
     def test_exercise_12_fast(self):
-        """Exercice 12 rapide."""
+        """Exercice 12."""
         test_id = "TE012"
         try:
             print(f"🧪 Test {test_id}: Exercice 12")
-            
+
             # Aller sur la page
             self.driver.get(self.base_url)
             time.sleep(1)
-            
+
             # 1. Créer première tâche
             first_task = "Tâche Exercice 12 - Persistante"
-            print(f"   Création 1: {first_task}")
-            
+            print(f"   Création 1: {first_task}")
+
             if not self.create_task_fast(first_task):
-                raise Exception(f"Échec création 1")
-            print(f"   ✅ Créée")
+                raise Exception("Échec création 1")
+            print("   ✅ Créée")
             time.sleep(0.5)
-            
+
             # 2. Créer deuxième tâche
             second_task = "Tâche Exercice 12 - À supprimer"
-            print(f"   Création 2: {second_task}")
-            
+            print(f"   Création 2: {second_task}")
+
             if not self.create_task_fast(second_task):
-                raise Exception(f"Échec création 2")
-            print(f"   ✅ Créée")
+                raise Exception("Échec création 2")
+            print("   ✅ Créée")
             time.sleep(0.5)
-            
+
             # 3. Supprimer deuxième tâche
-            print(f"   Suppression: {second_task}")
+            print(f"   Suppression: {second_task}")
             if not self.delete_task_fast(second_task):
-                raise Exception(f"Échec suppression")
-            print(f"   ✅ Supprimée")
+                raise Exception("Échec suppression")
+            print("   ✅ Supprimée")
             time.sleep(0.5)
-            
+
             # 4. Vérifier que première existe toujours
             self.driver.refresh()
             time.sleep(0.5)
-            
+
             if first_task in self.driver.page_source:
-                print(f"   ✅ Première tâche toujours présente")
+                print("   ✅ Première tâche toujours présente")
                 print(f"✅ Test {test_id} RÉUSSI!")
                 self.results[test_id] = {
                     "status": "passed",
@@ -451,7 +443,7 @@ class TodoListSeleniumTests:
                 }
             else:
                 raise Exception("Tâche persistante a disparu")
-                
+
         except Exception as e:
             print(f"❌ Test {test_id} ÉCHOUÉ: {str(e)}")
             self.results[test_id] = {
@@ -465,7 +457,7 @@ class TodoListSeleniumTests:
         passed = sum(1 for r in self.results.values() if r["status"] == "passed")
         failed = sum(1 for r in self.results.values() if r["status"] == "failed")
         total = len(self.results)
-        
+
         results_data = {
             "tests": self.results,
             "summary": {
@@ -475,15 +467,15 @@ class TodoListSeleniumTests:
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
             }
         }
-        
+
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(results_data, f, indent=2, ensure_ascii=False)
-        
+
         print(f"\n📁 Résultats sauvegardés dans: {output_file}")
         print("\n📈 RÉSUMÉ TESTS SELENIUM:")
-        print(f"   ✅ Tests passés: {passed}")
-        print(f"   ❌ Tests échoués: {failed}")
-        print(f"   📊 Total: {total}")
+        print(f"   ✅ Tests passés: {passed}")
+        print(f"   ❌ Tests échoués: {failed}")
+        print(f"   📊 Total: {total}")
 
 
 def run_selenium_tests():
@@ -491,37 +483,37 @@ def run_selenium_tests():
     tester = TodoListSeleniumTests()
     try:
         print("=" * 60)
-        print("🚀 LANCEMENT DES TESTS SELENIUM - RAPIDE")
+        print("🚀 LANCEMENT DES TESTS SELENIUM")
         print("=" * 60)
-        
+
         tester.setup()
-        
+
         print("\n" + "=" * 60)
         print("🧪 DÉBUT DES TESTS")
         print("=" * 60)
-        
-        # Exécuter les tests RAPIDES
+
+        # Exécuter les tests
         tester.test_count_create_delete_tasks_fast()  # TE001
         time.sleep(1)
-        tester.test_add_delete_specific_task_fast()   # TE002
+        tester.test_add_delete_specific_task_fast()  # TE002
         time.sleep(1)
-        tester.test_exercise_12_fast()                # TE012
-        
+        tester.test_exercise_12_fast()  # TE012
+
         tester.save_results()
-        
+
     except Exception as e:
         print(f"\n❌ ERREUR CRITIQUE: {e}")
         import traceback
         traceback.print_exc()
-        
+
         # Sauvegarder les résultats même en cas d'erreur
         try:
             tester.save_results()
-        except:
+        except Exception:
             pass
     finally:
         tester.teardown()
-    
+
     return tester.results
 
 
@@ -529,27 +521,27 @@ if __name__ == "__main__":
     print("=" * 60)
     print("TESTS SELENIUM - EXERCICES 9 & 12")
     print("=" * 60)
-    print("\n⚠  PRÉREQUIS:")
+    print("\n⚠  PRÉREQUIS:")
     print("1. Serveur Django doit tourner")
     print("2. Application accessible: http://127.0.0.1:8000/")
     print("=" * 60)
-    
+
     # Démarrer directement
     print("Démarrage dans 3 secondes...")
     time.sleep(3)
-    
+
     results = run_selenium_tests()
-    
+
     print("\n" + "=" * 60)
     print("🎯 TESTS TERMINÉS")
     print("=" * 60)
-    print(f"Fichier: result_test_selenium.json")
+    print("Fichier: result_test_selenium.json")
     print("=" * 60)
-    
+
     if results:
         passed = sum(1 for r in results.values() if r["status"] == "passed")
         total = len(results)
         if passed == total:
             print("🎉 TOUS LES TESTS RÉUSSIS !")
         else:
-            print(f"⚠  {passed}/{total} tests réussis")
+            print(f"⚠  {passed}/{total} tests réussis")
