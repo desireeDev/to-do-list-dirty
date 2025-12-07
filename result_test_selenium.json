@@ -1,27 +1,22 @@
 {
   "tests": {
     "TE001": {
-      "status": "failed",
-      "message": "Nombre final incorrect: attendu 2, obtenu 3"
+      "status": "passed",
+      "message": "10 tâches créées, 10 supprimées"
     },
     "TE002": {
       "status": "passed",
-      "message": "Test spécifique réussi: première tâche persistante"
+      "message": "Tâche persistante vérifiée"
     },
     "TE012": {
       "status": "passed",
-      "message": "Exercice 12 réussi: tâche persistante",
-      "details": {
-        "first_task": "Tâche Exercice 12 - Persistante",
-        "second_task": "Tâche Exercice 12 - À supprimer",
-        "first_task_still_present": true
-      }
+      "message": "Exercice 12 validé"
     }
   },
   "summary": {
     "total": 3,
-    "passed": 2,
-    "failed": 1,
-    "timestamp": "2025-12-01 20:08:07"
+    "passed": 3,
+    "failed": 0,
+    "timestamp": "2025-12-07 21:36:56"
   }
 }

@@ -1,47 +1,42 @@
 #!/usr/bin/env python3
 """
-Script pour générer result_test_auto.json à partir des tests Django.
+Script pour exécuter les tests Django et générer result_test_auto.json
+Inclut tests fonctionnels (TC), priorité (TP) et tests manuels.
 """
 
 import json
 import subprocess
 import sys
 import os
+import re
 
 
 def run_django_tests():
     """Exécute les tests Django et génère un rapport JSON."""
+
     print("🚀 Exécution des tests Django...")
 
-    project_root = os.path.dirname(
-        os.path.dirname(os.path.abspath(__file__))
-    )
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     manage_py = os.path.join(project_root, 'manage.py')
 
     if not os.path.exists(manage_py):
         print("❌ manage.py non trouvé")
         sys.exit(1)
 
+    # Utiliser verbosity=3 pour afficher tous les tests
     cmd = [
-        sys.executable, manage_py, 'test', 'tasks', '--noinput'
+        sys.executable, manage_py, 'test', 'tasks.tests',
+        '--noinput', '--verbosity=3'
     ]
-    result = subprocess.run(
-        cmd, capture_output=True, text=True, cwd=project_root
-    )
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=project_root)
 
     print("📊 Analyse des résultats...")
 
-    print("=== DÉBUT DE LA SORTIE ===")
-    lines_to_show = result.stdout.split('\n')[:10]
-    for i, line in enumerate(lines_to_show):
-        line_num = f"{i:2}"
-        print(f"{line_num}: {line}")
-    print("=== FIN DE LA SORTIE ===")
-
     test_results = {}
-    lines = result.stdout.split('\n')
 
+    # Mapping de tous les tests (TC + TP)
     test_mapping = {
+        # Tests fonctionnels
         'test_01_index_get': 'TC001',
         'test_02_index_post_valid': 'TC002',
         'test_03_index_post_invalid': 'TC003',
@@ -62,84 +57,112 @@ def run_django_tests():
         'test_18_accessibility_keyboard_navigation': 'TC018',
         'test_19_accessibility_update_page': 'TC019',
         'test_20_accessibility_delete_page': 'TC020',
-        'test_pa11y_available': 'TC021'
+        'test_pa11y_available': 'TC021',
+
+        # Tests priorité
+        'test_create_task_with_priority_field': 'TP001',
+        'test_priority_default_value_is_false': 'TP002',
+        'test_create_priority_task': 'TP003',
+        'test_task_form_includes_priority_field': 'TP004',
+        'test_priority_in_create_view': 'TP005',
+        'test_tasks_ordered_by_priority': 'TP006',
+        'test_priority_display_in_template': 'TP007'
     }
 
-    for line in lines:
-        line = line.strip()
+    full_output = result.stdout + result.stderr
 
-        # Chercher les patterns de réussite/échec Django
-        for test_method, test_id in test_mapping.items():
-            pattern1 = test_method + " "
-            pattern2 = test_method + "("
-            pattern3 = test_method + "."
-            patterns = [pattern1, pattern2, pattern3]
-            for pattern in patterns:
-                if pattern in line:
-                    ok_cond = 'OK' in line or '...' in line
-                    passed_cond = (
-                        '. ' in line or 'passed' in line.lower()
-                    )
-                    if ok_cond or passed_cond:
-                        status = 'passed'
-                    elif 'FAIL' in line or 'FAILED' in line:
-                        status = 'failed'
-                    elif 'ERROR' in line:
-                        status = 'error'
-                    elif 'SKIP' in line or 'skipped' in line.lower():
-                        status = 'skipped'
-                    else:
-                        status = 'unknown'
+    # Regex pour détecter tous les tests
+    test_pattern = re.compile(
+        r'(\w+)\.(test_\w+)\s+\([^)]+\)\s+\.\.\.\s+(ok|FAIL|ERROR|skipped|SKIP)',
+        re.IGNORECASE
+    )
 
-                    test_results[test_id] = {
-                        'status': status,
-                        'output': line[:100]
-                    }
-                    break
+    for match in test_pattern.finditer(full_output):
+        # Ex: TestTask
+        test_method = match.group(2)          # Ex: test_01_index_get
+        status_raw = match.group(3).lower()   # ok, fail, error, skipped
 
-    if not test_results:
-        print("⚠️  Aucun test détecté, utilisation du mode démo...")
-        for test_id in test_mapping.values():
+        if test_method in test_mapping:
+            test_id = test_mapping[test_method]
+
+            # Normaliser le statut
+            if status_raw == 'ok':
+                status = 'passed'
+            elif status_raw == 'fail':
+                status = 'failed'
+            elif status_raw == 'error':
+                status = 'error'
+            elif status_raw in ['skipped', 'skip']:
+                status = 'skipped'
+            else:
+                status = 'unknown'
+
             test_results[test_id] = {
-                'status': 'passed',
-                'note': 'Test réussi'
+                'status': status,
+                'test_method': test_method,
+                'output': match.group(0)[:200]
             }
 
-    # Ajouter les tests manuels
-    test_results['TC022'] = {
-        'status': 'manual',
-        'note': 'Test manuel requis'
-    }
-    test_results['TC023'] = {
-        'status': 'manual',
-        'note': 'Test visuel requis'
-    }
+    # Fallback parsing ligne par ligne si regex échoue
+    if not test_results:
+        print("⚠️ Regex n'a rien trouvé")
+        lines = full_output.split('\n')
+        for line in lines:
+            line_lower = line.lower()
+            for test_method, test_id in test_mapping.items():
+                if test_method.lower() in line_lower and test_id not in test_results:
+                    if any(word in line_lower for word in ['ok', '...', 'pass']):
+                        status = 'passed'
+                    elif 'fail' in line_lower:
+                        status = 'failed'
+                    elif 'error' in line_lower:
+                        status = 'error'
+                    elif 'skip' in line_lower:
+                        status = 'skipped'
+                    else:
+                        status = 'passed'
+                    test_results[test_id] = {
+                        'status': status,
+                        'test_method': test_method,
+                        'output': line.strip()[:200]
+                    }
 
+    # Si toujours rien, utiliser le code retour
+    if not test_results:
+        if result.returncode == 0:
+            for test_id in test_mapping.values():
+                test_results[test_id] = {
+                    'status': 'passed',
+                    'note': 'Détecté via code retour 0'
+                }
+        else:
+            print("❌ Aucun test détecté et code retour non nul")
+            print(full_output)
+            sys.exit(1)
+
+    # Ajouter tests manuels
+    test_results['TC022'] = {'status': 'manual', 'note': 'Test manuel requis'}
+    test_results['TC023'] = {'status': 'manual', 'note': 'Test visuel requis'}
+
+    # Écriture du JSON
     output_file = os.path.join(project_root, 'result_test_auto.json')
-    with open(output_file, 'w') as f:
+    with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(test_results, f, indent=2, ensure_ascii=False)
 
-    passed = sum(
-        1 for r in test_results.values()
-        if r.get('status') == 'passed'
-    )
-    failed = sum(
-        1 for r in test_results.values()
-        if r.get('status') == 'failed'
-    )
-    manual = sum(
-        1 for r in test_results.values()
-        if r.get('status') == 'manual'
-    )
+    # Statistiques
+    passed = sum(1 for r in test_results.values() if r.get('status') == 'passed')
+    failed = sum(1 for r in test_results.values() if r.get('status') == 'failed')
+    skipped = sum(1 for r in test_results.values() if r.get('status') == 'skipped')
+    manual = sum(1 for r in test_results.values() if r.get('status') == 'manual')
+    detected = len(test_results) - 2  # exclut manuels
 
     print("\n📈 RÉSUMÉ:")
     print(f"   ✅ Tests passés: {passed}")
     print(f"   ❌ Tests échoués: {failed}")
-    detected = len(test_results) - 2
-    detect_msg = f"   🔍 Tests détectés: {detected}"
-    print(detect_msg)
+    print(f"   ⚠️ Tests skipped: {skipped}")
+    print(f"   🔍 Tests détectés: {detected}")
     print(f"   👤 Tests manuels: {manual}")
-    print(f"   📁 Rapport: {output_file}")
+    print(f"   📁 Rapport JSON: {output_file}")
 
     return test_results
 

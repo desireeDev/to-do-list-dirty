@@ -1,87 +1,143 @@
 {
+  "TC021": {
+    "status": "passed",
+    "test_method": "test_pa11y_available",
+    "output": "test_pa11y_available (tasks.tests.AccessibilityAutomatedTests.test_pa11y_available)"
+  },
+  "TP003": {
+    "status": "passed",
+    "test_method": "test_create_priority_task",
+    "output": "test_create_priority_task (tasks.tests.TaskPriorityTests.test_create_priority_task)"
+  },
+  "TP001": {
+    "status": "passed",
+    "test_method": "test_create_task_with_priority_field",
+    "output": "test_create_task_with_priority_field (tasks.tests.TaskPriorityTests.test_create_task_with_priority_field)"
+  },
+  "TP002": {
+    "status": "passed",
+    "test_method": "test_priority_default_value_is_false",
+    "output": "test_priority_default_value_is_false (tasks.tests.TaskPriorityTests.test_priority_default_value_is_false)"
+  },
+  "TP007": {
+    "status": "passed",
+    "test_method": "test_priority_display_in_template",
+    "output": "test_priority_display_in_template (tasks.tests.TaskPriorityTests.test_priority_display_in_template)"
+  },
+  "TP005": {
+    "status": "passed",
+    "test_method": "test_priority_in_create_view",
+    "output": "test_priority_in_create_view (tasks.tests.TaskPriorityTests.test_priority_in_create_view)"
+  },
+  "TP004": {
+    "status": "passed",
+    "test_method": "test_task_form_includes_priority_field",
+    "output": "test_task_form_includes_priority_field (tasks.tests.TaskPriorityTests.test_task_form_includes_priority_field)"
+  },
+  "TP006": {
+    "status": "passed",
+    "test_method": "test_tasks_ordered_by_priority",
+    "output": "test_tasks_ordered_by_priority (tasks.tests.TaskPriorityTests.test_tasks_ordered_by_priority)"
+  },
   "TC001": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_01_index_get",
+    "output": "test_01_index_get (tasks.tests.TaskTests.test_01_index_get)"
   },
   "TC002": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_02_index_post_valid",
+    "output": "test_02_index_post_valid (tasks.tests.TaskTests.test_02_index_post_valid)"
   },
   "TC003": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_03_index_post_invalid",
+    "output": "test_03_index_post_invalid (tasks.tests.TaskTests.test_03_index_post_invalid)"
   },
   "TC004": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_04_update_task_get_valid_id",
+    "output": "test_04_update_task_get_valid_id (tasks.tests.TaskTests.test_04_update_task_get_valid_id) ... ok"
   },
   "TC005": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_05_update_task_get_invalid_id",
+    "output": "test_05_update_task_get_invalid_id (tasks.tests.TaskTests.test_05_update_task_get_invalid_id) ... ok"
   },
   "TC006": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_06_update_task_post_valid",
+    "output": "test_06_update_task_post_valid (tasks.tests.TaskTests.test_06_update_task_post_valid) ... ok"
   },
   "TC007": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_07_update_task_post_invalid",
+    "output": "test_07_update_task_post_invalid (tasks.tests.TaskTests.test_07_update_task_post_invalid) ... ok"
   },
   "TC008": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_08_delete_task_get_valid_id",
+    "output": "test_08_delete_task_get_valid_id (tasks.tests.TaskTests.test_08_delete_task_get_valid_id) ... ok"
   },
   "TC009": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_09_delete_task_get_invalid_id",
+    "output": "test_09_delete_task_get_invalid_id (tasks.tests.TaskTests.test_09_delete_task_get_invalid_id) ... ok"
   },
   "TC010": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_10_delete_task_post",
+    "output": "test_10_delete_task_post (tasks.tests.TaskTests.test_10_delete_task_post) ... ok"
   },
   "TC011": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_11_dataset_import",
+    "output": "test_11_dataset_import (tasks.tests.TaskTests.test_11_dataset_import)"
   },
   "TC012": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_12_import_dataset_script",
+    "output": "test_12_import_dataset_script (tasks.tests.TaskTests.test_12_import_dataset_script)"
   },
   "TC013": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_13_task_str",
+    "output": "test_13_task_str (tasks.tests.TaskTests.test_13_task_str)"
   },
   "TC014": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_14_task_created_field",
+    "output": "test_14_task_created_field (tasks.tests.TaskTests.test_14_task_created_field)"
   },
   "TC015": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_15_accessibility_homepage_semantic_structure",
+    "output": "test_15_accessibility_homepage_semantic_structure (tasks.tests.TaskTests.test_15_accessibility_homepage_semantic_structure)"
   },
   "TC016": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_16_accessibility_form_labels",
+    "output": "test_16_accessibility_form_labels (tasks.tests.TaskTests.test_16_accessibility_form_labels)"
   },
   "TC017": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_17_accessibility_aria_attributes",
+    "output": "test_17_accessibility_aria_attributes (tasks.tests.TaskTests.test_17_accessibility_aria_attributes)"
   },
   "TC018": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_18_accessibility_keyboard_navigation",
+    "output": "test_18_accessibility_keyboard_navigation (tasks.tests.TaskTests.test_18_accessibility_keyboard_navigation)"
   },
   "TC019": {
     "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_19_accessibility_update_page",
+    "output": "test_19_accessibility_update_page (tasks.tests.TaskTests.test_19_accessibility_update_page)"
   },
   "TC020": {
     "status": "passed",
-    "note": "Test réussi"
-  },
-  "TC021": {
-    "status": "passed",
-    "note": "Test réussi"
+    "test_method": "test_20_accessibility_delete_page",
+    "output": "test_20_accessibility_delete_page (tasks.tests.TaskTests.test_20_accessibility_delete_page)"
   },
   "TC022": {
     "status": "manual",
