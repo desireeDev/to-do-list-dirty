@@ -18,23 +18,25 @@ echo "=== BUILD v$VERSION DÉMARRÉ ==="
 
 # 0️⃣ Vérification des fichiers requis
 echo "=== Vérification des fichiers ==="
-REQUIRED_FILES=("test_list.yaml" "test_report.py" "tasks/generate_test_report.py" "tasks/decorators.py" "TDD_ATDD_EXPLANATION.md" "selenium_test.py")
+REQUIRED_FILES=("test_list.yaml" "test_report.py" "tasks/generate_test_report.py" "tasks/decorators.py" "TDD_ATDD_EXPLANATION.md" "selenium_test.py" "tasks/tests.py")
 for file in "${REQUIRED_FILES[@]}"; do
     if [ ! -f "$file" ]; then
         echo "❌ Fichier manquant: $file"
         exit 1
+    else
+        echo "✅ $file trouvé"
     fi
 done
 
-# Vérification des fichiers de tests
+# Vérification des fichiers de tests (MAINTENANT SEULEMENT tests.py)
 echo "=== Vérification fichiers de tests ==="
-TEST_FILES=("tasks/test_priority.py")
+TEST_FILES=("tasks/tests.py")
 for file in "${TEST_FILES[@]}"; do
     if [ ! -f "$file" ]; then
         echo "❌ Fichier de test manquant: $file"
         exit 1
     else
-        echo "✅ $file trouvé"
+        echo "✅ $file trouvé (contient tous les tests Django)"
     fi
 done
 
@@ -79,39 +81,35 @@ if ! pipenv run python manage.py makemigrations --check --dry-run; then
     echo "✅ Migrations appliquées"
 fi
 
-# 3️⃣ Linter
+# 3️⃣ Linter (METTRE À JOUR POUR tests.py SEULEMENT)
 echo "=== Lancement du linter ==="
-pipenv run flake8 tasks manage.py test_report.py tasks/generate_test_report.py tasks/decorators.py tasks/test_priority.py selenium_test.py || exit 1
+pipenv run flake8 tasks manage.py test_report.py tasks/generate_test_report.py tasks/decorators.py tasks/tests.py selenium_test.py || exit 1
 echo "✅ Linter passed"
 
-# 4️⃣ Tests Django avec IDs (incluant tests TDD)
-echo "=== Lancement des tests Django (avec IDs) ==="
-echo "Tests standards..."
-pipenv run python manage.py test tasks --noinput || exit 1
-echo "✅ Tests Django standards passed"
-
-# 5️⃣ Tests TDD spécifiques
-echo "=== Tests TDD pour la fonctionnalité de priorité ==="
-if pipenv run python manage.py test tasks.test_priority --noinput; then
-    echo "✅ Tests TDD priority passed"
+# 4️⃣ Tests Django TOUS DANS UN SEUL FICHIER (tests.py)
+echo "=== Lancement des tests Django (TOUS les tests) ==="
+echo "Tests Django complets (TC + TP)..."
+if pipenv run python manage.py test tasks.tests --noinput; then
+    echo "✅ Tous les tests Django passed (TC001-TC021 + TP001-TP007)"
 else
-    echo "❌ Tests TDD priority failed"
+    echo "❌ Tests Django failed"
     echo "Détail des tests:"
-    pipenv run python manage.py test tasks.test_priority -v 2
+    pipenv run python manage.py test tasks.tests -v 2
     exit 1
 fi
 
-# 6️⃣ Génération du rapport JSON des tests Django
+# 5️⃣ Génération du rapport JSON des tests Django
 echo "=== Génération du rapport JSON des tests Django ==="
 if pipenv run python tasks/generate_test_report.py; then
     echo "✅ Rapport JSON Django généré (result_test_auto.json)"
 else
-    echo "⚠️  Utilisation du générateur simple..."
-    pipenv run python tasks/simple_test_report.py || exit 1
-    echo "✅ Rapport simple généré"
+    echo "⚠️  Problème avec generate_test_report.py"
+    echo "Exécution des tests avec verbosité pour debug..."
+    pipenv run python manage.py test tasks.tests --verbose
+    exit 1
 fi
 
-# 7️⃣ TESTS E2E SELENIUM - AMÉLIORÉ
+# 6️⃣ TESTS E2E SELENIUM - AMÉLIORÉ
 echo "=== Tests E2E avec Selenium (Exercices 9 & 12) ==="
 SELENIUM_FILE="selenium_test.py"
 if [ -f "$SELENIUM_FILE" ]; then
@@ -154,7 +152,7 @@ else
     exit 1
 fi
 
-# 8️⃣ VÉRIFICATION SERVEUR POUR TESTS D'ACCESSIBILITÉ
+# 7️⃣ VÉRIFICATION SERVEUR POUR TESTS D'ACCESSIBILITÉ
 echo "=== Vérification pour tests d'accessibilité ==="
 echo "🔍 Vérification du serveur Django..."
 
@@ -181,7 +179,7 @@ else
     SERVER_STARTED_FOR_ACCESSIBILITY=false
 fi
 
-# 9️⃣ RAPPORT GLOBAL AVEC ACCESSIBILITÉ (Exercice 18)
+# 8️⃣ RAPPORT GLOBAL AVEC ACCESSIBILITÉ (Exercice 18)
 echo "=== Génération du rapport global des tests (Exercices 11 & 18) ==="
 echo "📊 Rapport unifié Django + Selenium + Accessibilité..."
 
@@ -260,14 +258,14 @@ else
     echo "   2. Dans un autre terminal: pipenv run python test_report.py"
 fi
 
-# 1️⃣0️⃣ Couverture de tests
+# 9️⃣ Couverture de tests
 echo "=== Lancement de la couverture de tests ==="
 pipenv run coverage run --source='tasks' manage.py test tasks || exit 1
 pipenv run coverage report
 pipenv run coverage html
 echo "✅ Couverture de tests passed"
 
-# 1️⃣1️⃣ Met à jour la version dans settings.py
+# 1️⃣0️⃣ Met à jour la version dans settings.py
 SETTINGS_FILE="todo/settings.py"
 
 if [ ! -f "$SETTINGS_FILE" ]; then
@@ -282,31 +280,31 @@ git add "$SETTINGS_FILE"
 git commit -m "chore: bump version to $VERSION" --allow-empty
 echo "✅ Version mise à jour à $VERSION"
 
-# 1️⃣2️⃣ Mise à jour du changelog
+# 1️⃣1️⃣ Mise à jour du changelog
 if [ -f "CHANGELOG.md" ]; then
-    echo -e "## Version $VERSION - $(date +%Y-%m-%d)\n- **Exercice 18 : Tests d'accessibilité automatisés**\n  - Intégration Pa11y pour tests WCAG 2.1 Niveau A\n  - Tests simplifiés avec vérifications HTML de base\n  - Cache pour performances améliorées\n  - Évaluation automatique de conformité\n- **Exercices 9 & 12 : Tests Selenium améliorés**\n  - Noms de tâches descriptifs ('Tâche Selenium X')\n  - Optimisation des performances en mode headless\n  - Gestion robuste des confirmations de suppression\n  - Script Selenium optimisé\n- **Exercice 11 : Rapport de tests unifié**\n  - Support Django Unit Tests, Selenium et Accessibilité\n  - Statistiques détaillées par catégorie\n  - Évaluation conformité WCAG avec score\n  - Détection automatique des tests manquants\n- **Améliorations techniques**\n  - Installation automatique des dépendances Selenium\n  - Gestion améliorée des erreurs\n  - Rapports JSON complets\n- **Corrections**\n  - Correction encodage JSON UTF-8/latin-1\n  - Serveur Django maintenu entre tests Selenium et accessibilité\n  - Logs améliorés pour le débogage\n  - Messages d'erreur plus clairs\n\n" | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
+    echo -e "## Version $VERSION - $(date +%Y-%m-%d)\n- **Exercice 18 : Tests d'accessibilité automatisés**\n  - Intégration Pa11y pour tests WCAG 2.1 Niveau A\n  - Tests simplifiés avec vérifications HTML de base\n  - Cache pour performances améliorées\n  - Évaluation automatique de conformité\n- **Exercices 9 & 12 : Tests Selenium améliorés**\n  - Noms de tâches descriptifs ('Tâche Selenium X')\n  - Optimisation des performances en mode headless\n  - Gestion robuste des confirmations de suppression\n  - Script Selenium optimisé\n- **Exercice 11 : Rapport de tests unifié**\n  - Support Django Unit Tests, Selenium et Accessibilité\n  - Statistiques détaillées par catégorie\n  - Évaluation conformité WCAG avec score\n  - Détection automatique des tests manquants\n- **Réorganisation des tests Django**\n  - Fusion de tous les tests (TC et TP) dans un seul fichier tests.py\n  - Suppression du fichier test_priority.py séparé\n  - Simplification de la gestion des tests\n- **Améliorations techniques**\n  - Installation automatique des dépendances Selenium\n  - Gestion améliorée des erreurs\n  - Rapports JSON complets\n- **Corrections**\n  - Correction encodage JSON UTF-8/latin-1\n  - Serveur Django maintenu entre tests Selenium et accessibilité\n  - Logs améliorés pour le débogage\n  - Messages d'erreur plus clairs\n\n" | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
     git add CHANGELOG.md
     git commit -m "docs: update changelog for $VERSION" --allow-empty
     echo "✅ Changelog mis à jour"
 fi
 
-# 1️⃣3️⃣ Tag Git
+# 1️⃣2️⃣ Tag Git
 if git rev-parse "v$VERSION" >/dev/null 2>&1; then
     echo "Le tag v$VERSION existe déjà, utilisation du tag existant."
 else
-    git tag -a "v$VERSION" -m "Version $VERSION - Selenium & Accessibilité améliorés + Exercises 9-12-18"
+    git tag -a "v$VERSION" -m "Version $VERSION - Tests Django unifiés + Selenium & Accessibilité améliorés"
     git push origin "v$VERSION"
     echo "✅ Tag v$VERSION créé"
 fi
 
-# 1️⃣4️⃣ Génère l'archive .zip
+# 1️⃣3️⃣ Génère l'archive .zip
 if command -v zip >/dev/null 2>&1; then
-    # Inclure tous les fichiers de test
+    # Inclure tous les fichiers de test (MAINTENANT SANS test_priority.py)
     echo "=== Génération de l'archive ==="
     zip -r "todolist-$VERSION.zip" \
         todo tasks manage.py \
         test_list.yaml test_report.py selenium_test.py \
-        tasks/generate_test_report.py tasks/simple_test_report.py tasks/decorators.py tasks/test_priority.py \
+        tasks/generate_test_report.py tasks/decorators.py tasks/tests.py \
         TDD_ATDD_EXPLANATION.md \
         build.sh \
         requirements.txt Pipfile Pipfile.lock \
@@ -340,7 +338,7 @@ echo "🎉 BUILD v$VERSION TERMINÉ AVEC SUCCÈS"
 echo "📦 todolist-$VERSION.zip"
 echo ""
 echo "🧪 SYSTÈME DE TESTS COMPLET:"
-echo "  ✅ Tests Django Unit"
+echo "  ✅ Tests Django Unit (TC001-TC021 + TP001-TP007)"
 echo "  ✅ Tests Selenium E2E (Exercices 9 & 12)"
 if [ "$SERVER_STARTED" = true ]; then
     echo "  ✅ Tests d'accessibilité WCAG 2.1 (Exercice 18)"
@@ -356,4 +354,4 @@ echo "   2. Puis dans un autre: pipenv run python test_report.py"
 echo ""
 echo "🚀 Pour tester maintenant:"
 echo "   pipenv run python test_report.py"
-echo "=========================="=========================="
+echo "=========================="

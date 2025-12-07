@@ -3,107 +3,107 @@ tests:
     description: "GET / affiche correctement la liste"
     type: "auto-unittest"
     category: "view"
-    
+
   TC002:
     description: "POST / avec données valides ajoute la tâche"
     type: "auto-unittest"
     category: "view"
-    
+
   TC003:
     description: "POST / avec données invalides ne crée pas de tâche"
     type: "auto-unittest"
     category: "view"
-    
+
   TC004:
     description: "GET update_task avec ID valide"
     type: "auto-unittest"
     category: "view"
-    
+
   TC005:
     description: "GET update_task avec ID invalide (404)"
     type: "auto-unittest"
     category: "view"
-    
+
   TC006:
     description: "POST update_task avec données valides"
     type: "auto-unittest"
     category: "view"
-    
+
   TC007:
     description: "POST update_task avec données invalides"
     type: "auto-unittest"
     category: "view"
-    
+
   TC008:
     description: "GET delete_task avec ID valide"
     type: "auto-unittest"
     category: "view"
-    
+
   TC009:
     description: "GET delete_task avec ID invalide (404)"
     type: "auto-unittest"
     category: "view"
-    
+
   TC010:
     description: "POST delete_task supprime la tâche"
     type: "auto-unittest"
     category: "view"
-    
+
   TC011:
     description: "Import du dataset JSON crée toutes les tâches"
     type: "auto-unittest"
     category: "data"
-    
+
   TC012:
     description: "Test l'import via le script import_dataset.py"
     type: "auto-unittest"
     category: "data"
-    
+
   TC013:
     description: "Vérifie la représentation en chaîne de la tâche"
     type: "auto-unittest"
     category: "model"
-    
+
   TC014:
     description: "Vérifie que le champ created est défini à la création"
     type: "auto-unittest"
     category: "model"
-    
+
   TC015:
     description: "Test la structure sémantique de la page d'accueil"
     type: "auto-unittest"
     category: "accessibility"
-    
+
   TC016:
     description: "Test que les formulaires ont des labels appropriés"
     type: "auto-unittest"
     category: "accessibility"
-    
+
   TC017:
     description: "Test la présence d'attributs ARIA"
     type: "auto-unittest"
     category: "accessibility"
-    
+
   TC018:
     description: "Test les éléments de navigation au clavier"
     type: "auto-unittest"
     category: "accessibility"
-    
+
   TC019:
     description: "Test l'accessibilité de la page de modification"
     type: "auto-unittest"
     category: "accessibility"
-  
+
   TC020:
     description: "Test l'accessibilité de la page de suppression"
     type: "auto-unittest"
     category: "accessibility"
-  
+
   TC021:
     description: "Vérification de la disponibilité de pa11y"
     type: "auto-unittest"
     category: "accessibility"
-  
+
   TC022:
     description: "Navigation complète utilisateur (créer, modifier, supprimer)"
     type: "manuel"
@@ -114,7 +114,7 @@ tests:
       - "Modifier la tâche"
       - "Supprimer la tâche"
       - "Vérifier que la tâche a bien disparu"
-    
+
   TC023:
     description: "Interface responsive sur différents appareils"
     type: "manuel"
@@ -140,55 +140,63 @@ tests:
     description: "Test E2E complet: compter, créer 10 tâches, supprimer 10 tâches"
     type: "auto-selenium"
     category: "E2E"
-    
+
   TE002:
     description: "Test E2E spécifique: ajouter tâche, identifier, ajouter autre, supprimer dernière"
     type: "auto-selenium"
     category: "E2E"
-    TP001:
-  description: "Le modèle Task a un champ priority"
-  type: "auto-unittest"
-  category: "priority"
-  
-TP002:
-  description: "La priorité est False par défaut"
-  type: "auto-unittest"
-  category: "priority"
-  
-TP003:
-  description: "Création d'une tâche prioritaire"
-  type: "auto-unittest"
-  category: "priority"
-  
-TP004:
-  description: "TaskForm inclut le champ priority"
-  type: "auto-unittest"
-  category: "priority"
-  
-TP005:
-  description: "Vue de création accepte la priorité"
-  type: "auto-unittest"
-  category: "priority"
-  
-TP006:
-  description: "Les tâches sont ordonnées par priorité"
-  type: "auto-unittest"
-  category: "priority"
-  
-TP007:
-  description: "La priorité s'affiche dans le template"
-  type: "auto-unittest"
-  category: "priority"
-    
+
+  TE012:
+    description: "Exercice 12 - Suppression avec vérification"
+    type: "auto-selenium"
+    category: "E2E"
+
+  TP001:
+    description: "Le modèle Task a un champ priority"
+    type: "auto-unittest"
+    category: "priority"
+
+  TP002:
+    description: "La priorité est False par défaut"
+    type: "auto-unittest"
+    category: "priority"
+
+  TP003:
+    description: "Création d'une tâche prioritaire"
+    type: "auto-unittest"
+    category: "priority"
+
+  TP004:
+    description: "TaskForm inclut le champ priority"
+    type: "auto-unittest"
+    category: "priority"
+
+  TP005:
+    description: "Vue de création accepte la priorité"
+    type: "auto-unittest"
+    category: "priority"
+
+  TP006:
+    description: "Les tâches sont ordonnées par priorité"
+    type: "auto-unittest"
+    category: "priority"
+
+  TP007:
+    description: "La priorité s'affiche dans le template"
+    type: "auto-unittest"
+    category: "priority"
+
   # === TESTS D'ACCESSIBILITÉ WCAG 2.1 AA (Exercice 18) ===
   AC001:
     type: auto-accessibility
     description: "Test d'accessibilité de la page d'accueil"
     url: "http://127.0.0.1:8000/"
+
   AC002:
     type: auto-accessibility
     description: "Test d'accessibilité de la page de modification"
     url: "http://127.0.0.1:8000/update_task/"
+
   AC003:
     type: auto-accessibility
     description: "Test d'accessibilité de la page de suppression"

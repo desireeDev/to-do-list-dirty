@@ -9,7 +9,7 @@
     "warnings": []
   },
   "AC002": {
-    "url": "http://127.0.0.1:8000/update_task/277/",
+    "url": "http://127.0.0.1:8000/update_task/502/",
     "status": "passed",
     "score": 100,
     "errors_count": 0,
@@ -18,7 +18,7 @@
     "warnings": []
   },
   "AC003": {
-    "url": "http://127.0.0.1:8000/delete_task/277/",
+    "url": "http://127.0.0.1:8000/delete_task/502/",
     "status": "passed",
     "score": 100,
     "errors_count": 0,
