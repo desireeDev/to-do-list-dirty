@@ -2,7 +2,7 @@
 
 # -----------------------------
 # Script de build pour le projet Django avec pipenv
-# Version 1.6.0 - Tests Selenium et Accessibilité améliorés
+# Version 1.6.0 - Tests Selenium et Accessibilité
 # -----------------------------
 
 set -e  # Stoppe le script si une commande échoue
@@ -90,7 +90,7 @@ echo "✅ Linter passed"
 echo "=== Lancement des tests Django (TOUS les tests) ==="
 echo "Tests Django complets (TC + TP)..."
 if pipenv run python manage.py test tasks.tests --noinput; then
-    echo "✅ Tous les tests Django passed (TC001-TC021 + TP001-TP007)"
+    echo "Tous les tests Django ont été exécutés (TC001-TC021 + TP001-TP007)"
 else
     echo "❌ Tests Django failed"
     echo "Détail des tests:"
@@ -109,7 +109,7 @@ else
     exit 1
 fi
 
-# 6️⃣ TESTS E2E SELENIUM - AMÉLIORÉ
+# 6️⃣ TESTS E2E SELENIUM
 echo "=== Tests E2E avec Selenium (Exercices 9 & 12) ==="
 SELENIUM_FILE="selenium_test.py"
 if [ -f "$SELENIUM_FILE" ]; then
@@ -299,7 +299,7 @@ fi
 
 # 1️⃣3️⃣ Génère l'archive .zip
 if command -v zip >/dev/null 2>&1; then
-    # Inclure tous les fichiers de test (MAINTENANT SANS test_priority.py)
+    # Inclure tous les fichiers de test
     echo "=== Génération de l'archive ==="
     zip -r "todolist-$VERSION.zip" \
         todo tasks manage.py \
