@@ -29,11 +29,11 @@
 
 | Page d'accueil | Création de tâche | Modification |
 |----------------|-------------------|--------------|
-| ![Accueil](images/image-3.png) | ![Création](images/image-1.png) | ![Modification]images/(V2.png) |
+| ![Accueil](images/image-3.png) | ![Création](images/image-1.png) | ![Modification](images/V2.png)|
 
 | Suppression | Priorité des tâches | Tests Selenium |
 |-------------|---------------------|----------------|
-| ![Suppression](images/V3.png) | ![Priorité](images/PRIO.png) | !|
+| ![Suppression](images/V3.png) | ![Priorité](images/PRIO.png) |
 
 ---
 
