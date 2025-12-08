@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, dev-quality-system ]
   pull_request:
-    branches: [ main, dev-quality-system ]
+    branches: [ main ]
 
 jobs:
   run-all-tests:
@@ -30,7 +30,6 @@ jobs:
     - name: 📝 Run linter (flake8)
       run: |
         echo "=== LINTER ==="
-        # Utilisation de --exit-zero pour continuer même en cas d'erreurs de lint
         pipenv run flake8 . --count --max-complexity=15 --max-line-length=127 --exit-zero
         echo "✅ Linter exécuté"
     
@@ -44,18 +43,16 @@ jobs:
       id: django-tests
       run: |
         echo "=== TESTS DJANGO ==="
-        # Exécute les tests. Le '|| true' permet de ne pas faire échouer l'étape si les tests échouent
         pipenv run python manage.py test --noinput --verbosity=2 || true
         
         echo "=== GÉNÉRATION RAPPORT TESTS DJANGO ==="
         pipenv run python generate_test_report.py
         
-        # Bloc if/else/fi corrigé
         if [ -f "result_test_auto.json" ]; then
           echo "✅ Rapport Django généré: result_test_auto.json"
           
-          # Script Python inline pour le résumé des résultats
-          pipenv run python << 'PYTHON_EOF'
+          # Utiliser un script Python séparé
+          pipenv run python -c "
 import json
 
 with open('result_test_auto.json') as f:
@@ -64,17 +61,17 @@ with open('result_test_auto.json') as f:
 if 'statistics' in data:
     s = data['statistics']
     print('📊 RÉSUMÉ TESTS DJANGO:')
-    print(f'  ✅ Passés: {s["passed"]}')
-    print(f'  ❌ Échoués: {s["failed"]}')
-    print(f'  👤 Manuels: {s["manual"]}')
-    print(f'  📋 Total: {s["total"]}')
+    print(f'  ✅ Passés: {s[\"passed\"]}')
+    print(f'  ❌ Échoués: {s[\"failed\"]}')
+    print(f'  👤 Manuels: {s[\"manual\"]}')
+    print(f'  📋 Total: {s[\"total\"]}')
     
     if s.get('manual', 0) > 0 and 'tests' in data:
-        print('\n🔍 TESTS MANUELS RESTANTS:')
+        print('\\n🔍 TESTS MANUELS RESTANTS:')
         for test_id, details in data['tests'].items():
             if isinstance(details, dict) and details.get('status') == 'manual':
-                print(f'  - {test_id}: {details.get("note", "")}')
-PYTHON_EOF
+                print(f'  - {test_id}: {details.get(\"note\", \"\")}')
+"
         else
           echo "❌ Rapport Django non généré. Fin du pipeline."
           exit 1
@@ -99,7 +96,6 @@ PYTHON_EOF
       run: |
         echo "=== TESTS SELENIUM ==="
         
-        # Installation de Chrome et ChromeDriver
         sudo apt-get update
         sudo apt-get install -y wget unzip
         
@@ -112,7 +108,7 @@ PYTHON_EOF
         unzip -o chromedriver-linux64.zip
         sudo mv chromedriver-linux64/chromedriver /usr/local/bin/
         sudo chmod +x /usr/local/bin/chromedriver
-        rm -rf chromedriver-linux64.zip chromedivedr-linux64
+        rm -rf chromedriver-linux64.zip chromedriver-linux64
         
         echo "🧪 Exécution des tests Selenium..."
         sleep 3
@@ -126,8 +122,7 @@ PYTHON_EOF
         if [ -f "result_test_selenium.json" ]; then
           echo "✅ Rapport Selenium généré: result_test_selenium.json"
           
-          # Script Python inline pour le résumé des résultats Selenium
-          pipenv run python << 'PYTHON_EOF'
+          pipenv run python -c "
 import json
 
 try:
@@ -146,7 +141,7 @@ try:
     
 except Exception as e:
     print(f'⚠️ Erreur: {e}')
-PYTHON_EOF
+"
         else
           echo "⚠️ Aucun rapport Selenium"
         fi
@@ -156,7 +151,6 @@ PYTHON_EOF
       run: |
         echo "=== TESTS D'ACCESSIBILITÉ ==="
         
-        # Installation de Node.js et Pa11y-CI
         curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
         sudo apt-get install -y nodejs
         
@@ -167,14 +161,12 @@ PYTHON_EOF
           exit 1
         fi
         
-        # Exécution de Pa11y-CI. Le '|| true' évite l'échec si des erreurs d'accessibilité sont trouvées.
         pa11y-ci --json http://localhost:8000/ > accessibility_report.json 2>/dev/null || true
         
         if [ -f "accessibility_report.json" ]; then
           echo "✅ Rapport accessibilité généré: accessibility_report.json"
           
-          # Script Python inline pour le résumé des résultats d'accessibilité
-          pipenv run python << 'PYTHON_EOF'
+          pipenv run python -c "
 import json
 
 try:
@@ -195,7 +187,7 @@ try:
     
 except Exception as e:
     print(f'⚠️ Erreur: {e}')
-PYTHON_EOF
+"
         else
           echo "⚠️ Aucun rapport accessibilité"
         fi
@@ -253,7 +245,6 @@ PYTHON_EOF
             const errors = issues.filter(i => i.type === 'error').length;
             const warnings = issues.filter(i => i.type === 'warning').length;
             
-            // Total des tests automatisés (Django total - Django manuel) + Selenium total
             const totalAuto = (django.total - django.manual) + selenium.total;
             const totalPassed = django.passed + selenium.passed;
             const successRate = totalAuto > 0 ? (totalPassed / totalAuto * 100).toFixed(1) : '0';
