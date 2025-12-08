@@ -51,26 +51,16 @@ jobs:
         if [ -f "result_test_auto.json" ]; then
           echo "✅ Rapport Django généré: result_test_auto.json"
           
-          # Utiliser un script Python séparé
-          pipenv run python -c "
+          # Vérification simple du fichier
+          echo "📊 Vérification du rapport Django..."
+          python -c "
 import json
-
-with open('result_test_auto.json') as f:
-    data = json.load(f)
-
-if 'statistics' in data:
-    s = data['statistics']
-    print('📊 RÉSUMÉ TESTS DJANGO:')
-    print(f'  ✅ Passés: {s[\"passed\"]}')
-    print(f'  ❌ Échoués: {s[\"failed\"]}')
-    print(f'  👤 Manuels: {s[\"manual\"]}')
-    print(f'  📋 Total: {s[\"total\"]}')
-    
-    if s.get('manual', 0) > 0 and 'tests' in data:
-        print('\\n🔍 TESTS MANUELS RESTANTS:')
-        for test_id, details in data['tests'].items():
-            if isinstance(details, dict) and details.get('status') == 'manual':
-                print(f'  - {test_id}: {details.get(\"note\", \"\")}')
+try:
+    with open('result_test_auto.json') as f:
+        data = json.load(f)
+    print('Rapport Django valide')
+except Exception as e:
+    print(f'Erreur: {e}')
 "
         else
           echo "❌ Rapport Django non généré. Fin du pipeline."
@@ -103,8 +93,11 @@ if 'statistics' in data:
         sudo apt-get install -y ./chrome.deb || sudo apt-get install -f -y
         rm -f chrome.deb
         
+        # Version simplifiée de ChromeDriver
         CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d'.' -f1)
-        wget -q "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}.0.6099.109/linux64/chromedriver-linux64.zip"
+        echo "Chrome version: $CHROME_VERSION"
+        
+        wget -q "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/120.0.6099.109/linux64/chromedriver-linux64.zip"
         unzip -o chromedriver-linux64.zip
         sudo mv chromedriver-linux64/chromedriver /usr/local/bin/
         sudo chmod +x /usr/local/bin/chromedriver
@@ -113,40 +106,15 @@ if 'statistics' in data:
         echo "🧪 Exécution des tests Selenium..."
         sleep 3
         
-        if pipenv run python selenium_test.py; then
-          echo "✅ Tests Selenium exécutés"
-        else
-          echo "⚠️ Tests Selenium avec erreurs"
-        fi
+        pipenv run python selenium_test.py || echo "⚠️ Tests Selenium avec erreurs"
         
         if [ -f "result_test_selenium.json" ]; then
-          echo "✅ Rapport Selenium généré: result_test_selenium.json"
-          
-          pipenv run python -c "
-import json
-
-try:
-    with open('result_test_selenium.json') as f:
-        data = json.load(f)
-    
-    summary = data.get('summary', {})
-    passed = summary.get('passed', 0)
-    failed = summary.get('failed', 0)
-    total = summary.get('total', 0)
-    
-    print('📊 RÉSUMÉ TESTS SELENIUM:')
-    print(f'  ✅ Passés: {passed}')
-    print(f'  ❌ Échoués: {failed}')
-    print(f'  📋 Total: {total}')
-    
-except Exception as e:
-    print(f'⚠️ Erreur: {e}')
-"
+          echo "✅ Rapport Selenium généré"
         else
           echo "⚠️ Aucun rapport Selenium"
         fi
     
-    - name: ♿ Run accessibility tests and generate JSON report
+    - name: ♿ Run accessibility tests
       id: accessibility-tests
       run: |
         echo "=== TESTS D'ACCESSIBILITÉ ==="
@@ -164,30 +132,7 @@ except Exception as e:
         pa11y-ci --json http://localhost:8000/ > accessibility_report.json 2>/dev/null || true
         
         if [ -f "accessibility_report.json" ]; then
-          echo "✅ Rapport accessibilité généré: accessibility_report.json"
-          
-          pipenv run python -c "
-import json
-
-try:
-    with open('accessibility_report.json') as f:
-        data = json.load(f)
-    
-    if isinstance(data, list) and len(data) > 0:
-        result = data[0]
-        issues = result.get('issues', [])
-        
-        errors = [i for i in issues if i.get('type') == 'error']
-        warnings = [i for i in issues if i.get('type') == 'warning']
-        
-        print('📊 RÉSUMÉ TESTS ACCESSIBILITÉ:')
-        print(f'  ❌ Erreurs: {len(errors)}')
-        print(f'  ⚠️ Warnings: {len(warnings)}')
-        print(f'  📋 Total: {len(issues)}')
-    
-except Exception as e:
-    print(f'⚠️ Erreur: {e}')
-"
+          echo "✅ Rapport accessibilité généré"
         else
           echo "⚠️ Aucun rapport accessibilité"
         fi
@@ -198,13 +143,82 @@ except Exception as e:
         if [ -f "django_server.pid" ]; then
           kill $(cat django_server.pid) 2>/dev/null || true
           rm -f django_server.pid
+          echo "✅ Serveur arrêté"
         fi
     
-    - name: 📊 Run comprehensive test report script
-      id: test-report
+    - name: 📊 Generate simple test summary
       run: |
-        echo "=== RAPPORT GLOBAL ==="
-        pipenv run python test_report.py || echo "⚠️ Rapport global avec erreurs"
+        echo "=== 📊 RÉSUMÉ DES TESTS ==="
+        echo ""
+        
+        # Résumé Django
+        if [ -f "result_test_auto.json" ]; then
+          echo "🧪 TESTS DJANGO:"
+          python -c "
+import json
+try:
+    with open('result_test_auto.json') as f:
+        data = json.load(f)
+    stats = data.get('statistics', {})
+    print(f'  Passés: {stats.get(\"passed\", 0)}')
+    print(f'  Échoués: {stats.get(\"failed\", 0)}')
+    print(f'  Manuels: {stats.get(\"manual\", 0)}')
+    print(f'  Total: {stats.get(\"total\", 0)}')
+except:
+    print('  Données non disponibles')
+"
+        else
+          echo "🧪 TESTS DJANGO: Non disponibles"
+        fi
+        
+        echo ""
+        
+        # Résumé Selenium
+        if [ -f "result_test_selenium.json" ]; then
+          echo "🌐 TESTS SELENIUM:"
+          python -c "
+import json
+try:
+    with open('result_test_selenium.json') as f:
+        data = json.load(f)
+    stats = data.get('summary', {})
+    print(f'  Passés: {stats.get(\"passed\", 0)}')
+    print(f'  Échoués: {stats.get(\"failed\", 0)}')
+    print(f'  Total: {stats.get(\"total\", 0)}')
+except:
+    print('  Données non disponibles')
+"
+        else
+          echo "🌐 TESTS SELENIUM: Non disponibles"
+        fi
+        
+        echo ""
+        
+        # Résumé Accessibilité
+        if [ -f "accessibility_report.json" ]; then
+          echo "♿ TESTS ACCESSIBILITÉ:"
+          python -c "
+import json
+try:
+    with open('accessibility_report.json') as f:
+        data = json.load(f)
+    
+    if isinstance(data, list) and len(data) > 0:
+        issues = data[0].get('issues', [])
+        errors = len([i for i in issues if i.get('type') == 'error'])
+        warnings = len([i for i in issues if i.get('type') == 'warning'])
+        
+        print(f'  Erreurs: {errors}')
+        print(f'  Warnings: {warnings}')
+        print(f'  Total problèmes: {len(issues)}')
+    else:
+        print('  Format de rapport invalide')
+except Exception as e:
+    print(f'  Erreur: {e}')
+"
+        else
+          echo "♿ TESTS ACCESSIBILITÉ: Non disponibles"
+        fi
     
     - name: 📁 Upload test reports
       if: always()
@@ -231,12 +245,26 @@ except Exception as e:
             let seleniumData = { summary: { passed: 0, failed: 0, total: 0 } };
             let accessibilityData = { issues: [] };
             
-            try { djangoData = JSON.parse(fs.readFileSync('result_test_auto.json', 'utf8')); } catch (e) { console.log('Django report not found or invalid.'); }
-            try { seleniumData = JSON.parse(fs.readFileSync('result_test_selenium.json', 'utf8')); } catch (e) { console.log('Selenium report not found or invalid.'); }
+            try { 
+              djangoData = JSON.parse(fs.readFileSync('result_test_auto.json', 'utf8')); 
+            } catch (e) { 
+              console.log('Django report not found'); 
+            }
+            
+            try { 
+              seleniumData = JSON.parse(fs.readFileSync('result_test_selenium.json', 'utf8')); 
+            } catch (e) { 
+              console.log('Selenium report not found'); 
+            }
+            
             try {
               const acc = JSON.parse(fs.readFileSync('accessibility_report.json', 'utf8'));
-              if (Array.isArray(acc) && acc.length > 0) accessibilityData = acc[0];
-            } catch (e) { console.log('Accessibility report not found or invalid.'); }
+              if (Array.isArray(acc) && acc.length > 0) {
+                accessibilityData = acc[0];
+              }
+            } catch (e) { 
+              console.log('Accessibility report not found'); 
+            }
             
             const django = djangoData.statistics;
             const selenium = seleniumData.summary;
@@ -250,22 +278,13 @@ except Exception as e:
             const successRate = totalAuto > 0 ? (totalPassed / totalAuto * 100).toFixed(1) : '0';
             
             const hasFailed = django.failed > 0 || selenium.failed > 0 || errors > 0;
-            const status = hasFailed ? '❌ ÉCHEC GLOBAL' : '✅ SUCCÈS';
+            const status = hasFailed ? '❌ ÉCHEC' : '✅ SUCCÈS';
             
-            let comment = `## ${status} Résultats des Tests - PR #${context.issue.number}\n\n`;
-            comment += `### 🧪 Tests Django\n`;
-            comment += `✔️ Passés: ${django.passed}\n❌ Échoués: ${django.failed}\n`;
-            comment += `👤 Manuels: ${django.manual}\n📋 Total: ${django.total}\n\n`;
-            
-            comment += `### 🌐 Tests Selenium\n`;
-            comment += `✔️ Passés: ${selenium.passed}\n❌ Échoués: ${selenium.failed}\n📋 Total: ${selenium.total}\n\n`;
-            
-            comment += `### ♿ Accessibilité\n`;
-            comment += `❌ Erreurs: ${errors}\n⚠️ Warnings: ${warnings}\n📋 Problèmes: ${issues.length}\n\n`;
-            
-            comment += `### 📈 Résumé Global\n`;
-            comment += `${status} Tests automatisés passés: ${totalPassed}/${totalAuto}\n`;
-            comment += `📊 Taux de réussite: ${successRate}%\n\n`;
+            let comment = `## ${status} - Résultats des Tests\n\n`;
+            comment += `**Django:** ✅${django.passed} ❌${django.failed} 👤${django.manual} | **Selenium:** ✅${selenium.passed} ❌${selenium.failed}\n`;
+            comment += `**Accessibilité:** ❌${errors} ⚠️${warnings}\n\n`;
+            comment += `**Taux de réussite:** ${successRate}%\n\n`;
+            comment += `*Rapport généré automatiquement*`;
             
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -274,6 +293,8 @@ except Exception as e:
               body: comment
             });
             
+            console.log('✅ Commentaire ajouté à la PR');
+            
           } catch (error) {
-            console.error('Erreur lors de la création du commentaire de PR:', error);
+            console.error('Erreur:', error);
           }
