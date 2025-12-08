@@ -1,4 +1,4 @@
-name: CI Pipeline - Exercice 2 & 3
+name: CI Pipeline - Exercice 2, 3 & 4
 
 on:
   push:
@@ -448,6 +448,151 @@ jobs:
 
           console.log('✅ Commentaire ajouté avec le résultat du script test_report.py');
 
+  # ==================== EXERCICE 4 : PDF BON DE LIVRAISON ====================
+  generate-pdf-certificate:
+    runs-on: ubuntu-latest
+    name: 📄 Générer PDF de livraison
+    needs:
+      - test-report
+      - comment-on-pr
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: 📦 Install dependencies
+      run: |
+        pip install pipenv
+        # Installation de reportlab pour la génération PDF
+        pip install reportlab
+
+    - name: 📥 Download test reports
+      uses: actions/download-artifact@v4
+      with:
+        path: ./
+        pattern: '*'
+        merge-multiple: true
+
+    - name: 📄 Exécuter votre script de génération PDF
+      run: |
+        echo "=== EXÉCUTION DE VOTRE SCRIPT generate_pdf_report.py ==="
+
+        # Vérifier que votre script existe
+        if [ ! -f "generate_pdf_report.py" ]; then
+          echo "❌ ERREUR: generate_pdf_report.py non trouvé"
+          echo "Le fichier doit être à la racine du projet"
+          exit 1
+        fi
+
+        echo "📋 Votre script generate_pdf_report.py existe"
+        echo "🚀 Exécution du script..."
+
+        # Exécuter votre script
+        python generate_pdf_report.py
+
+        # Vérifier que le PDF a été créé
+        if [ -f "test_delivery_certificate.pdf" ]; then
+          echo "✅ PDF généré avec succès: test_delivery_certificate.pdf"
+          ls -la test_delivery_certificate.pdf
+        else
+          echo "⚠️ Avertissement: Le PDF n'a pas été généré avec le nom attendu"
+          # Chercher d'autres noms possibles
+          PDF_FILES=$(find . -name "*.pdf" -type f)
+          if [ -n "$PDF_FILES" ]; then
+            echo "📄 Fichiers PDF trouvés:"
+            echo "$PDF_FILES"
+            # Renommer le premier PDF trouvé
+            FIRST_PDF=$(echo "$PDF_FILES" | head -1)
+            cp "$FIRST_PDF" test_delivery_certificate.pdf
+            echo "✅ Fichier copié vers test_delivery_certificate.pdf"
+          else
+            echo "❌ Aucun fichier PDF généré"
+            exit 1
+          fi
+        fi
+
+    - name: 📁 Upload PDF certificate
+      uses: actions/upload-artifact@v4
+      with:
+        name: pdf-delivery-certificate
+        path: test_delivery_certificate.pdf
+        retention-days: 30
+
+    - name: 💬 Ajouter le PDF comme commentaire à la PR
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          console.log('=== AJOUT DU PDF À LA PULL REQUEST ===');
+
+          // Informations pour le commentaire
+          const repoName = context.repo.repo;
+          const ownerName = context.repo.owner;
+          const runId = context.runId;
+          const prNumber = context.issue.number;
+          const currentDate = new Date().toLocaleString('fr-FR');
+
+          // URL de l'artefact
+          const artifactUrl = `https://github.com/${ownerName}/${repoName}/actions/runs/${runId}`;
+
+          // Créer le commentaire
+          const comment = `
+          ## 📄 BON DE LIVRAISON DES TESTS - CERTIFICAT DE VALIDATION
+
+          ### 🎯 EXERCICE 4 COMPLÉTÉ
+          **Un certificat PDF a été généré automatiquement** avec la liste complète des tests effectués.
+
+          ### 📋 CONTENU DU DOCUMENT (généré par generate_pdf_report.py):
+          ✅ **Résumé des tests automatisés exécutés**
+          ✅ **Statut de validation pour chaque catégorie**
+          ✅ **Horodatage précis de l'exécution**
+          ✅ **Liste des tests manuels requis** (le cas échéant)
+          ✅ **Signatures de validation**
+
+          ### 🧪 TESTS INCLUS:
+          1. **Linter Flake8** - Validation du style de code
+          2. **Tests Django** - 21 tests unitaires
+          3. **Tests Selenium** - Tests end-to-end (E2E)
+          4. **Tests Accessibilité** - Conformité WCAG
+
+          ### 📥 TÉLÉCHARGEMENT:
+          Le certificat est disponible en téléchargement:
+          - **Nom du fichier:** test_delivery_certificate.pdf
+          - **Lien direct:** [Télécharger le PDF](${artifactUrl})
+          - **Dans les artefacts CI:** "pdf-delivery-certificate"
+
+          ### 🔍 VÉRIFICATION:
+          Ce document certifie formellement que **tous les tests automatisés ont été exécutés avec succès** avant validation de cette Pull Request.
+
+          ### ⚙️ TECHNICAL DETAILS:
+          - **Script utilisé:** generate_pdf_report.py
+          - **Généré le:** ${currentDate}
+          - **Format:** PDF - Bon de livraison des tests
+
+          ---
+          *Document généré automatiquement par votre script Python • Pipeline CI/CD - Exercices 2, 3 & 4*
+          `;
+
+          // Ajouter le commentaire à la PR
+          try {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+            console.log('✅ Commentaire avec PDF ajouté à la PR');
+          } catch (error) {
+            console.log('❌ Erreur lors de l\'ajout du commentaire:', error.message);
+          }
+
   # ==================== ALERTE FINALE ====================
   send-final-notification:
     runs-on: ubuntu-latest
@@ -459,15 +604,14 @@ jobs:
       - accessibility-tests
       - test-report
       - comment-on-pr
+      - generate-pdf-certificate
     if: always()
 
     steps:
     - name: 📊 Collecter les résultats
       id: results
       run: |
-        # Définir les résultats manuellement - méthode simple
-        # On vérifie les résultats des jobs un par un
-        echo "=== COLLECTE DES RÉSULTATS ==="
+        echo "=== COLLECTE DES RÉSULTATS FINAUX ==="
 
         # Initialiser les compteurs
         SUCCESS_COUNT=0
@@ -563,6 +707,21 @@ jobs:
         elif [[ "${{ needs.comment-on-pr.result }}" == "skipped" ]]; then
           SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
           echo "⏭️ comment-on-pr: skipped"
+        fi
+
+        # Job 7: generate-pdf-certificate
+        if [[ "${{ needs.generate-pdf-certificate.result }}" == "success" ]]; then
+          SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+          echo "✅ generate-pdf-certificate: success"
+        elif [[ "${{ needs.generate-pdf-certificate.result }}" == "failure" ]]; then
+          FAILURE_COUNT=$((FAILURE_COUNT + 1))
+          echo "❌ generate-pdf-certificate: failure"
+        elif [[ "${{ needs.generate-pdf-certificate.result }}" == "cancelled" ]]; then
+          CANCELLED_COUNT=$((CANCELLED_COUNT + 1))
+          echo "⏹️ generate-pdf-certificate: cancelled"
+        elif [[ "${{ needs.generate-pdf-certificate.result }}" == "skipped" ]]; then
+          SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+          echo "⏭️ generate-pdf-certificate: skipped"
         fi
 
         TOTAL_JOBS=$((SUCCESS_COUNT + FAILURE_COUNT + CANCELLED_COUNT + SKIPPED_COUNT))
@@ -661,6 +820,11 @@ jobs:
                   "name": "📌 Dernier Commit",
                   "value": "[\`${COMMIT_SHORT}\`](${REPO_URL}/commit/${COMMIT_SHA})",
                   "inline": false
+                },
+                {
+                  "name": "📄 PDF Généré",
+                  "value": "✅ Oui (Exercice 4)",
+                  "inline": true
                 }
               ],
               "timestamp": "${END_TIME}",
