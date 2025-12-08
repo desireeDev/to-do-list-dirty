@@ -28,9 +28,11 @@ jobs:
         AUTHOR="${{ github.actor }}"
         EVENT_TYPE="${{ github.event_name }}"
         WORKFLOW_NAME="${{ github.workflow }}"
+        TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
-        # Message Discord (embed format)
-        EMBED_JSON='{
+        # Construire le message JSON pour Discord (méthode plus simple)
+        cat > discord_message.json << EOF
+        {
           "username": "Elixir bot",
           "avatar_url": "https://cdn-icons-png.flaticon.com/512/4715/4715329.png",
           "embeds": [
@@ -41,54 +43,55 @@ jobs:
               "fields": [
                 {
                   "name": "📦 Projet",
-                  "value": "['$REPO_NAME']('$REPO_URL')",
+                  "value": "[${REPO_NAME}](${REPO_URL})",
                   "inline": true
                 },
                 {
                   "name": "🌿 Branche",
-                  "value": "`'$BRANCH'`",
+                  "value": "\`${BRANCH}\`",
                   "inline": true
                 },
                 {
                   "name": "👤 Déclenché par",
-                  "value": "`'$AUTHOR'`",
+                  "value": "\`${AUTHOR}\`",
                   "inline": true
                 },
                 {
                   "name": "🔧 Type",
-                  "value": "`'$EVENT_TYPE'`",
+                  "value": "\`${EVENT_TYPE}\`",
                   "inline": true
                 },
                 {
                   "name": "📌 Commit",
-                  "value": "[`'$COMMIT_SHORT'`]('$REPO_URL'/commit/'$COMMIT_SHA')",
+                  "value": "[\`${COMMIT_SHORT}\`](${REPO_URL}/commit/${COMMIT_SHA})",
                   "inline": true
                 },
                 {
                   "name": "⚙️ Workflow",
-                  "value": "`'$WORKFLOW_NAME'`",
+                  "value": "\`${WORKFLOW_NAME}\`",
                   "inline": true
                 }
               ],
-              "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+              "timestamp": "${TIMESTAMP}",
               "footer": {
                 "text": "GitHub Actions CI • En cours d'exécution..."
               }
             }
           ]
-        }'
+        }
+        EOF
 
         # Envoyer à Discord
         if [ -n "$DISCORD_WEBHOOK" ]; then
+          echo "Envoi de l'alerte de démarrage à Discord..."
           curl -X POST \
             -H "Content-Type: application/json" \
-            --data "$EMBED_JSON" \
-            "$DISCORD_WEBHOOK" || echo "⚠️ Erreur lors de l'envoi à Discord"
-          echo "✅ Alerte de démarrage envoyée à Discord"
+            --data-binary "@discord_message.json" \
+            "$DISCORD_WEBHOOK" && echo "✅ Alerte de démarrage envoyée à Discord" || echo "⚠️ Erreur lors de l'envoi à Discord"
         else
           echo "⚠️ URL Discord non configurée. Ajoutez DISCORD_WEBHOOK_URL aux secrets GitHub"
           echo "Message qui aurait été envoyé :"
-          echo "$EMBED_JSON" | python3 -m json.tool
+          cat discord_message.json
         fi
 
   # ==================== TESTS EXISTANTS ====================
@@ -610,6 +613,7 @@ jobs:
         COMMIT_SHORT="${COMMIT_SHA:0:7}"
         WORKFLOW_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         RUN_ID="${{ github.run_id }}"
+        END_TIME="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
         # Résultats
         GLOBAL_STATUS="${{ steps.results.outputs.global_status }}"
@@ -622,61 +626,60 @@ jobs:
         SKIPPED="${{ steps.results.outputs.skipped }}"
         TOTAL="${{ steps.results.outputs.total }}"
 
-        # Durée d'exécution
-        END_TIME="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-
-        # Message Discord
-        EMBED_JSON='{
+        # Construire le message JSON pour Discord
+        cat > discord_final_message.json << EOF
+        {
           "username": "Elixir bot",
           "avatar_url": "https://cdn-icons-png.flaticon.com/512/4715/4715329.png",
           "embeds": [
             {
-              "title": "'$EMOJI' CI Terminée: '$GLOBAL_STATUS'",
-              "description": "**todo-list-app-test**\n'$STATUS_TEXT'",
-              "color": '$COLOR',
+              "title": "${EMOJI} CI Terminée: ${GLOBAL_STATUS}",
+              "description": "**todo-list-app-test**\n${STATUS_TEXT}",
+              "color": ${COLOR},
               "fields": [
                 {
                   "name": "📊 Résumé des Jobs",
-                  "value": "```diff\n+'$SUCCESS' ✅ réussis\n-'$FAILURE' ❌ échecs\n'$CANCELLED' ⏹️ annulés\n'$SKIPPED' ⏭️ ignorés\n---\nTotal: '$TOTAL' jobs```",
+                  "value": "```diff\n+${SUCCESS} ✅ réussis\n-${FAILURE} ❌ échecs\n${CANCELLED} ⏹️ annulés\n${SKIPPED} ⏭️ ignorés\n---\nTotal: ${TOTAL} jobs```",
                   "inline": false
                 },
                 {
                   "name": "📦 Projet",
-                  "value": "['$REPO_NAME']('$REPO_URL')",
+                  "value": "[${REPO_NAME}](${REPO_URL})",
                   "inline": true
                 },
                 {
                   "name": "🌿 Branche",
-                  "value": "`'$BRANCH'`",
+                  "value": "\`${BRANCH}\`",
                   "inline": true
                 },
                 {
                   "name": "🆔 Run ID",
-                  "value": "`#'$RUN_ID'`",
+                  "value": "\`#${RUN_ID}\`",
                   "inline": true
                 },
                 {
                   "name": "📌 Dernier Commit",
-                  "value": "[`'$COMMIT_SHORT'`]('$REPO_URL'/commit/'$COMMIT_SHA')",
+                  "value": "[\`${COMMIT_SHORT}\`](${REPO_URL}/commit/${COMMIT_SHA})",
                   "inline": false
                 }
               ],
-              "timestamp": "'$END_TIME'",
+              "timestamp": "${END_TIME}",
               "footer": {
                 "text": "Cliquez pour voir les détails",
                 "icon_url": "https://github.githubassets.com/favicons/favicon.png"
               },
-              "url": "'$WORKFLOW_URL'"
+              "url": "${WORKFLOW_URL}"
             }
           ]
-        }'
+        }
+        EOF
 
         # Envoyer à Discord
         if [ -n "$DISCORD_WEBHOOK" ]; then
           echo "Envoi de l'alerte finale à Discord..."
           curl -X POST \
             -H "Content-Type: application/json" \
-            --data "$EMBED_JSON" \
+            --data-binary "@discord_final_message.json" \
             "$DISCORD_WEBHOOK" && echo "✅ Alerte de résultat envoyée à Discord" || echo "⚠️ Erreur lors de l'envoi à Discord"
         else
           echo "⚠️ URL Discord non configurée. Pour activer les alertes Discord:"
@@ -685,5 +688,5 @@ jobs:
           echo "3. Redémarrez ce workflow"
           echo ""
           echo "Message qui aurait été envoyé :"
-          echo "$EMBED_JSON" | python3 -m json.tool
+          cat discord_final_message.json
         fi
