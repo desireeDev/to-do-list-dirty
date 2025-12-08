@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, dev-quality-system ]
   pull_request:
-    branches: [ main, dev-quality-system ]  # ← AJOUTÉ ICI
+    branches: [ main, dev-quality-system ]
 
 jobs:
   run-all-tests:
@@ -51,7 +51,7 @@ jobs:
         if [ -f "result_test_auto.json" ]; then
           echo "✅ Rapport Django généré: result_test_auto.json"
           
-           pipenv run python << 'EOF
+          pipenv run python << 'PYTHON_EOF'
 import json
 
 with open('result_test_auto.json') as f:
@@ -60,17 +60,17 @@ with open('result_test_auto.json') as f:
 if 'statistics' in data:
     s = data['statistics']
     print('📊 RÉSUMÉ TESTS DJANGO:')
-    print(f'  ✅ Passés: {s[\"passed\"]}')
-    print(f'  ❌ Échoués: {s[\"failed\"]}')
-    print(f'  👤 Manuels: {s[\"manual\"]}')
-    print(f'  📋 Total: {s[\"total\"]}')
+    print(f'  ✅ Passés: {s["passed"]}')
+    print(f'  ❌ Échoués: {s["failed"]}')
+    print(f'  👤 Manuels: {s["manual"]}')
+    print(f'  📋 Total: {s["total"]}')
     
     if s.get('manual', 0) > 0 and 'tests' in data:
-        print('\\n🔍 TESTS MANUELS RESTANTS:')
+        print('\n🔍 TESTS MANUELS RESTANTS:')
         for test_id, details in data['tests'].items():
             if isinstance(details, dict) and details.get('status') == 'manual':
-                print(f'  - {test_id}: {details.get(\"note\", \"\")}')
-        "
+                print(f'  - {test_id}: {details.get("note", "")}')
+PYTHON_EOF
         else
           echo "❌ Rapport Django non généré"
           exit 1
@@ -126,7 +126,7 @@ if 'statistics' in data:
         if [ -f "result_test_selenium.json" ]; then
           echo "✅ Rapport Selenium généré: result_test_selenium.json"
           
-          pipenv run python -c "
+          pipenv run python << 'PYTHON_EOF'
 import json
 
 try:
@@ -145,7 +145,7 @@ try:
     
 except Exception as e:
     print(f'⚠️ Erreur: {e}')
-            "
+PYTHON_EOF
         else
           echo "⚠️ Aucun rapport Selenium"
         fi
@@ -177,7 +177,7 @@ except Exception as e:
         if [ -f "accessibility_report.json" ]; then
           echo "✅ Rapport accessibilité généré: accessibility_report.json"
           
-          pipenv run python -c "
+          pipenv run python << 'PYTHON_EOF'
 import json
 
 try:
@@ -198,7 +198,7 @@ try:
     
 except Exception as e:
     print(f'⚠️ Erreur: {e}')
-            "
+PYTHON_EOF
         else
           echo "⚠️ Aucun rapport accessibilité"
         fi
