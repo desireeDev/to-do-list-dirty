@@ -30,6 +30,7 @@ jobs:
     - name: 📝 Run linter (flake8)
       run: |
         echo "=== LINTER ==="
+        # Utilisation de --exit-zero pour continuer même en cas d'erreurs de lint
         pipenv run flake8 . --count --max-complexity=15 --max-line-length=127 --exit-zero
         echo "✅ Linter exécuté"
     
@@ -43,14 +44,17 @@ jobs:
       id: django-tests
       run: |
         echo "=== TESTS DJANGO ==="
-        pipenv run python manage.py test --noinput --verbosity=2 || echo "⚠️ Certains tests Django ont échoué"
+        # Exécute les tests. Le '|| true' permet de ne pas faire échouer l'étape si les tests échouent
+        pipenv run python manage.py test --noinput --verbosity=2 || true
         
         echo "=== GÉNÉRATION RAPPORT TESTS DJANGO ==="
         pipenv run python generate_test_report.py
         
+        # Début du bloc de correction pour le Bash if/else
         if [ -f "result_test_auto.json" ]; then
           echo "✅ Rapport Django généré: result_test_auto.json"
           
+          # Script Python inline pour le résumé des résultats
           pipenv run python << 'PYTHON_EOF'
 import json
 
@@ -71,9 +75,9 @@ if 'statistics' in data:
             if isinstance(details, dict) and details.get('status') == 'manual':
                 print(f'  - {test_id}: {details.get("note", "")}')
 PYTHON_EOF
-
+          
         else
-          echo "❌ Rapport Django non généré"
+          echo "❌ Rapport Django non généré. Fin du pipeline."
           exit 1
         fi
     
@@ -96,6 +100,7 @@ PYTHON_EOF
       run: |
         echo "=== TESTS SELENIUM ==="
         
+        # Installation de Chrome et ChromeDriver
         sudo apt-get update
         sudo apt-get install -y wget unzip
         
@@ -122,6 +127,7 @@ PYTHON_EOF
         if [ -f "result_test_selenium.json" ]; then
           echo "✅ Rapport Selenium généré: result_test_selenium.json"
           
+          # Script Python inline pour le résumé des résultats Selenium
           pipenv run python << 'PYTHON_EOF'
 import json
 
@@ -142,7 +148,7 @@ try:
 except Exception as e:
     print(f'⚠️ Erreur: {e}')
 PYTHON_EOF
-
+          
         else
           echo "⚠️ Aucun rapport Selenium"
         fi
@@ -152,6 +158,7 @@ PYTHON_EOF
       run: |
         echo "=== TESTS D'ACCESSIBILITÉ ==="
         
+        # Installation de Node.js et Pa11y-CI
         curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
         sudo apt-get install -y nodejs
         
@@ -162,11 +169,13 @@ PYTHON_EOF
           exit 1
         fi
         
+        # Exécution de Pa11y-CI. Le '|| true' évite l'échec si des erreurs d'accessibilité sont trouvées.
         pa11y-ci --json http://localhost:8000/ > accessibility_report.json 2>/dev/null || true
         
         if [ -f "accessibility_report.json" ]; then
           echo "✅ Rapport accessibilité généré: accessibility_report.json"
           
+          # Script Python inline pour le résumé des résultats d'accessibilité
           pipenv run python << 'PYTHON_EOF'
 import json
 
@@ -183,13 +192,13 @@ try:
         
         print('📊 RÉSUMÉ TESTS ACCESSIBILITÉ:')
         print(f'  ❌ Erreurs: {len(errors)}')
-        print(f'  ⚠️  Warnings: {len(warnings)}')
+        print(f'  ⚠️ Warnings: {len(warnings)}')
         print(f'  📋 Total: {len(issues)}')
     
 except Exception as e:
     print(f'⚠️ Erreur: {e}')
 PYTHON_EOF
-
+          
         else
           echo "⚠️ Aucun rapport accessibilité"
         fi
@@ -233,12 +242,12 @@ PYTHON_EOF
             let seleniumData = { summary: { passed: 0, failed: 0, total: 0 } };
             let accessibilityData = { issues: [] };
             
-            try { djangoData = JSON.parse(fs.readFileSync('result_test_auto.json', 'utf8')); } catch {}
-            try { seleniumData = JSON.parse(fs.readFileSync('result_test_selenium.json', 'utf8')); } catch {}
+            try { djangoData = JSON.parse(fs.readFileSync('result_test_auto.json', 'utf8')); } catch (e) { console.log('Django report not found or invalid.'); }
+            try { seleniumData = JSON.parse(fs.readFileSync('result_test_selenium.json', 'utf8')); } catch (e) { console.log('Selenium report not found or invalid.'); }
             try {
               const acc = JSON.parse(fs.readFileSync('accessibility_report.json', 'utf8'));
               if (Array.isArray(acc) && acc.length > 0) accessibilityData = acc[0];
-            } catch {}
+            } catch (e) { console.log('Accessibility report not found or invalid.'); }
             
             const django = djangoData.statistics;
             const selenium = seleniumData.summary;
@@ -247,12 +256,13 @@ PYTHON_EOF
             const errors = issues.filter(i => i.type === 'error').length;
             const warnings = issues.filter(i => i.type === 'warning').length;
             
+            // Total des tests automatisés (Django total - Django manuel) + Selenium total
             const totalAuto = (django.total - django.manual) + selenium.total;
             const totalPassed = django.passed + selenium.passed;
             const successRate = totalAuto > 0 ? (totalPassed / totalAuto * 100).toFixed(1) : '0';
             
             const hasFailed = django.failed > 0 || selenium.failed > 0 || errors > 0;
-            const status = hasFailed ? '❌' : '✅';
+            const status = hasFailed ? '❌ ÉCHEC GLOBAL' : '✅ SUCCÈS';
             
             let comment = `## ${status} Résultats des Tests - PR #${context.issue.number}\n\n`;
             comment += `### 🧪 Tests Django\n`;
@@ -263,7 +273,7 @@ PYTHON_EOF
             comment += `✔️ Passés: ${selenium.passed}\n❌ Échoués: ${selenium.failed}\n📋 Total: ${selenium.total}\n\n`;
             
             comment += `### ♿ Accessibilité\n`;
-            comment += `❌ Erreurs: ${errors}\n⚠️  Warnings: ${warnings}\n📋 Problèmes: ${issues.length}\n\n`;
+            comment += `❌ Erreurs: ${errors}\n⚠️ Warnings: ${warnings}\n📋 Problèmes: ${issues.length}\n\n`;
             
             comment += `### 📈 Résumé Global\n`;
             comment += `${status} Tests automatisés passés: ${totalPassed}/${totalAuto}\n`;
@@ -276,4 +286,6 @@ PYTHON_EOF
               body: comment
             });
             
-          } catch {}
+          } catch (error) {
+            console.error('Erreur lors de la création du commentaire de PR:', error);
+          }
