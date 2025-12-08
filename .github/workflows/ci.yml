@@ -7,10 +7,10 @@ on:
     branches: [ main ]
 
 jobs:
-  run-all-tests:
+  setup-and-lint:
     runs-on: ubuntu-latest
-    name: 🧪 Exécuter tous les tests
-    timeout-minutes: 15
+    name: ⚙️ Setup & Lint
+    timeout-minutes: 5
     
     steps:
     - name: 📥 Checkout code
@@ -30,110 +30,94 @@ jobs:
     - name: 📝 Run linter (flake8)
       run: |
         echo "=== LINTER ==="
-        pipenv run flake8 . --count --max-complexity=15 --max-line-length=127 --exit-zero
+        pipenv run flake8 . --count --max-complexity=15 --max-line-length=127 || true
         echo "✅ Linter exécuté"
+
+  django-tests:
+    runs-on: ubuntu-latest
+    name: 🧪 Tests Django
+    needs: setup-and-lint
+    timeout-minutes: 5
     
-    - name: 🗄️ Setup Django database (SQLite)
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+    
+    - name: 📦 Install dependencies
+      run: |
+        pip install pipenv
+        pipenv install --dev
+    
+    - name: 🗄️ Setup Django database
       run: |
         echo "=== CONFIGURATION BASE DE DONNÉES ==="
         pipenv run python manage.py migrate --noinput
         echo "✅ Base de données SQLite configurée"
     
-    - name: 🧪 Run Django tests and generate JSON report
-      id: django-tests
+    - name: 🧪 Run Django tests
+      id: run-django-tests
       run: |
         echo "=== TESTS DJANGO ==="
-        pipenv run python manage.py test --noinput --verbosity=2 || echo "⚠️ Certains tests Django ont échoué"
+        # Utilise ton fichier test.py existant
+        pipenv run python manage.py test tasks.tests --noinput --verbosity=2
         
+    - name: 📊 Generate Django report
+      if: always()
+      run: |
         echo "=== GÉNÉRATION RAPPORT TESTS DJANGO ==="
-        pipenv run python generate_test_report.py || echo "⚠️ Impossible de générer le rapport"
-        
-        if [ -f "result_test_auto.json" ]; then
-          echo "✅ Rapport Django généré: result_test_auto.json"
-          
-          # Vérification simple du fichier - SYNTAXE CORRECTE
-          echo "📊 Vérification du rapport Django..."
-          python3 -c "import json
-try:
-    with open('result_test_auto.json') as f:
-        data = json.load(f)
-    print('Rapport Django valide')
-except Exception as e:
-    print(f'Erreur: {e}')"
-        else
-          echo "❌ Rapport Django non généré. Fin du pipeline."
-          exit 1
-        fi
+        # Utilise ton script existant
+        pipenv run python generate_test_report.py
+        echo "✅ Rapport Django généré"
+
+  selenium-tests:
+    runs-on: ubuntu-latest
+    name: 🌐 Tests Selenium
+    needs: django-tests
+    timeout-minutes: 10
     
-    - name: 🌐 Start Django server for Selenium
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+    
+    - name: 📦 Install dependencies
+      run: |
+        pip install pipenv
+        pipenv install --dev
+        pipenv run pip install selenium webdriver-manager
+    
+    - name: 🏗️ Setup Chrome & ChromeDriver
+      uses: nanasess/setup-chromedriver@v2  # ← SOLUTION CORRECTE
+    
+    - name: 🗄️ Setup Django database
+      run: |
+        pipenv run python manage.py migrate --noinput
+    
+    - name: 🌐 Start Django server
       run: |
         echo "=== DÉMARRAGE SERVEUR DJANGO ==="
         pipenv run python manage.py runserver 0.0.0.0:8000 &
         echo $! > django_server.pid
         sleep 5
-        
-        if curl -f http://localhost:8000/ > /dev/null 2>&1; then
-          echo "✅ Serveur Django démarré"
-        else
-          echo "❌ Serveur Django non accessible"
-          exit 1
-        fi
+        curl -f http://localhost:8000/ && echo "✅ Serveur Django démarré"
     
-    - name: 🌐 Run Selenium tests and generate JSON report
-      id: selenium-tests
+    - name: 🧪 Run Selenium tests
       run: |
         echo "=== TESTS SELENIUM ==="
-        
-        sudo apt-get update
-        sudo apt-get install -y wget unzip
-        
-        wget -q -O chrome.deb "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
-        sudo apt-get install -y ./chrome.deb || sudo apt-get install -f -y
-        rm -f chrome.deb
-        
-        # Version simplifiée de ChromeDriver
-        CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d'.' -f1)
-        echo "Chrome version: $CHROME_VERSION"
-        
-        wget -q "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/120.0.6099.109/linux64/chromedriver-linux64.zip"
-        unzip -o chromedriver-linux64.zip
-        sudo mv chromedriver-linux64/chromedriver /usr/local/bin/
-        sudo chmod +x /usr/local/bin/chromedriver
-        rm -rf chromedriver-linux64.zip chromedriver-linux64
-        
-        echo "🧪 Exécution des tests Selenium..."
-        sleep 3
-        
-        pipenv run python selenium_test.py || echo "⚠️ Tests Selenium avec erreurs"
-        
-        if [ -f "result_test_selenium.json" ]; then
-          echo "✅ Rapport Selenium généré"
-        else
-          echo "⚠️ Aucun rapport Selenium"
-        fi
-    
-    - name: ♿ Run accessibility tests
-      id: accessibility-tests
-      run: |
-        echo "=== TESTS D'ACCESSIBILITÉ ==="
-        
-        curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-        sudo apt-get install -y nodejs
-        
-        sudo npm install -g pa11y-ci@5
-        
-        if ! curl -f http://localhost:8000/ > /dev/null 2>&1; then
-          echo "❌ Serveur non accessible"
-          exit 1
-        fi
-        
-        pa11y-ci --json http://localhost:8000/ > accessibility_report.json 2>/dev/null || true
-        
-        if [ -f "accessibility_report.json" ]; then
-          echo "✅ Rapport accessibilité généré"
-        else
-          echo "⚠️ Aucun rapport accessibilité"
-        fi
+        # Utilise ton fichier selenium_test.py existant
+        pipenv run python selenium_test.py
+        echo "✅ Tests Selenium exécutés"
     
     - name: 🛑 Stop Django server
       if: always()
@@ -143,16 +127,82 @@ except Exception as e:
           rm -f django_server.pid
           echo "✅ Serveur arrêté"
         fi
+
+  accessibility-tests:
+    runs-on: ubuntu-latest
+    name: ♿ Tests Accessibilité
+    needs: selenium-tests  # Attends que Selenium finisse
+    timeout-minutes: 5
     
-    - name: 📊 Generate simple test summary
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+    
+    - name: 📦 Install dependencies
+      run: |
+        pip install pipenv
+        pipenv install --dev
+    
+    - name: 🏗️ Setup Node.js
+      uses: actions/setup-node@v4  # ← SOLUTION SÉCURISÉE
+      with:
+        node-version: '18'
+    
+    - name: 📦 Install pa11y-ci
+      run: npm install -g pa11y-ci@5
+    
+    - name: 🗄️ Setup Django database
+      run: |
+        pipenv run python manage.py migrate --noinput
+    
+    - name: 🌐 Start Django server
+      run: |
+        echo "=== DÉMARRAGE SERVEUR DJANGO ==="
+        pipenv run python manage.py runserver 0.0.0.0:8000 &
+        echo $! > django_server.pid
+        sleep 5
+        curl -f http://localhost:8000/ && echo "✅ Serveur Django démarré"
+    
+    - name: ♿ Run accessibility tests
+      run: |
+        echo "=== TESTS D'ACCESSIBILITÉ ==="
+        pa11y-ci --json http://localhost:8000/ > accessibility_report.json 2>/dev/null || true
+        echo "✅ Tests accessibilité exécutés"
+    
+    - name: 🛑 Stop Django server
+      if: always()
+      run: |
+        if [ -f "django_server.pid" ]; then
+          kill $(cat django_server.pid) 2>/dev/null || true
+          rm -f django_server.pid
+          echo "✅ Serveur arrêté"
+        fi
+
+  generate-reports:
+    runs-on: ubuntu-latest
+    name: 📊 Générer Rapports
+    needs: [django-tests, selenium-tests, accessibility-tests]
+    if: always()
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 📈 Generate summary
       run: |
         echo "=== 📊 RÉSUMÉ DES TESTS ==="
         echo ""
         
-        # Résumé Django - SYNTAXE CORRECTE
+        # Résumé Django
         if [ -f "result_test_auto.json" ]; then
           echo "🧪 TESTS DJANGO:"
-          python3 -c "
+          pipenv run python -c "
 import json
 try:
     with open('result_test_auto.json') as f:
@@ -171,10 +221,10 @@ except Exception as e:
         
         echo ""
         
-        # Résumé Selenium - SYNTAXE CORRECTE
+        # Résumé Selenium
         if [ -f "result_test_selenium.json" ]; then
           echo "🌐 TESTS SELENIUM:"
-          python3 -c "
+          pipenv run python -c "
 import json
 try:
     with open('result_test_selenium.json') as f:
@@ -192,20 +242,18 @@ except Exception as e:
         
         echo ""
         
-        # Résumé Accessibilité - SYNTAXE CORRECTE
+        # Résumé Accessibilité
         if [ -f "accessibility_report.json" ]; then
           echo "♿ TESTS ACCESSIBILITÉ:"
-          python3 -c "
+          pipenv run python -c "
 import json
 try:
     with open('accessibility_report.json') as f:
         data = json.load(f)
-    
     if isinstance(data, list) and len(data) > 0:
         issues = data[0].get('issues', [])
         errors = len([i for i in issues if i.get('type') == 'error'])
         warnings = len([i for i in issues if i.get('type') == 'warning'])
-        
         print(f'  Erreurs: {errors}')
         print(f'  Warnings: {warnings}')
         print(f'  Total problèmes: {len(issues)}')
@@ -228,9 +276,24 @@ except Exception as e:
           result_test_selenium.json
           accessibility_report.json
         retention-days: 30
+
+  comment-on-pr:
+    runs-on: ubuntu-latest
+    name: 💬 Commenter sur PR
+    needs: generate-reports
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 📥 Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: test-reports
+        path: ./
     
     - name: 💬 Comment on Pull Request
-      if: github.event_name == 'pull_request'
       uses: actions/github-script@v7
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -239,6 +302,7 @@ except Exception as e:
           const fs = require('fs');
           
           try {
+            // Lire les rapports
             let djangoData = { statistics: { passed: 0, failed: 0, manual: 0, total: 0 } };
             let seleniumData = { summary: { passed: 0, failed: 0, total: 0 } };
             let accessibilityData = { issues: [] };
@@ -246,13 +310,13 @@ except Exception as e:
             try { 
               djangoData = JSON.parse(fs.readFileSync('result_test_auto.json', 'utf8')); 
             } catch (e) { 
-              console.log('Django report not found'); 
+              console.log('⚠️ Rapport Django non trouvé'); 
             }
             
             try { 
               seleniumData = JSON.parse(fs.readFileSync('result_test_selenium.json', 'utf8')); 
             } catch (e) { 
-              console.log('Selenium report not found'); 
+              console.log('⚠️ Rapport Selenium non trouvé'); 
             }
             
             try {
@@ -261,7 +325,7 @@ except Exception as e:
                 accessibilityData = acc[0];
               }
             } catch (e) { 
-              console.log('Accessibility report not found'); 
+              console.log('⚠️ Rapport accessibilité non trouvé'); 
             }
             
             const django = djangoData.statistics;
@@ -278,11 +342,34 @@ except Exception as e:
             const hasFailed = django.failed > 0 || selenium.failed > 0 || errors > 0;
             const status = hasFailed ? '❌ ÉCHEC' : '✅ SUCCÈS';
             
-            let comment = `## ${status} - Résultats des Tests\n\n`;
-            comment += `**Django:** ✅${django.passed} ❌${django.failed} 👤${django.manual} | **Selenium:** ✅${selenium.passed} ❌${selenium.failed}\n`;
-            comment += `**Accessibilité:** ❌${errors} ⚠️${warnings}\n\n`;
-            comment += `**Taux de réussite:** ${successRate}%\n\n`;
-            comment += `*Rapport généré automatiquement*`;
+            let comment = `## ${status} - Résultats des Tests (PR #${context.issue.number})\n\n`;
+            comment += `**Exécuté le:** ${new Date().toLocaleString('fr-FR')}\n`;
+            comment += `**Branche:** ${context.payload.pull_request.head.ref} → ${context.payload.pull_request.base.ref}\n\n`;
+            
+            comment += `### 🧪 Tests Django\n`;
+            comment += `✅ **Passés:** ${django.passed} | ❌ **Échoués:** ${django.failed} | 👤 **Manuels:** ${django.manual}\n\n`;
+            
+            comment += `### 🌐 Tests Selenium\n`;
+            comment += `✅ **Passés:** ${selenium.passed} | ❌ **Échoués:** ${selenium.failed}\n\n`;
+            
+            comment += `### ♿ Tests Accessibilité\n`;
+            comment += `❌ **Erreurs:** ${errors} | ⚠️ **Warnings:** ${warnings}\n\n`;
+            
+            comment += `### 📈 Résumé Global\n`;
+            comment += `${status} **Taux de réussite:** ${successRate}%\n`;
+            
+            // Tests manuels restants
+            if (django.manual > 0) {
+              comment += `\n### ⚠️ Tests Manuels Restants\n`;
+              comment += `**${django.manual}** test(s) manuel(s) à réaliser:\n`;
+              comment += `- TC022: Navigation complète utilisateur\n`;
+              comment += `- TC023: Interface responsive\n`;
+              comment += `- TO01: Test E2E manuel\n`;
+            }
+            
+            comment += `\n---\n`;
+            comment += `📁 **Rapports disponibles dans les artefacts**\n`;
+            comment += `*Généré automatiquement par GitHub Actions*`;
             
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -294,5 +381,5 @@ except Exception as e:
             console.log('✅ Commentaire ajouté à la PR');
             
           } catch (error) {
-            console.error('Erreur:', error);
+            console.error('❌ Erreur:', error);
           }
