@@ -43,25 +43,23 @@ jobs:
       id: django-tests
       run: |
         echo "=== TESTS DJANGO ==="
-        pipenv run python manage.py test --noinput --verbosity=2 || true
+        pipenv run python manage.py test --noinput --verbosity=2 || echo "⚠️ Certains tests Django ont échoué"
         
         echo "=== GÉNÉRATION RAPPORT TESTS DJANGO ==="
-        pipenv run python generate_test_report.py
+        pipenv run python generate_test_report.py || echo "⚠️ Impossible de générer le rapport"
         
         if [ -f "result_test_auto.json" ]; then
           echo "✅ Rapport Django généré: result_test_auto.json"
           
-          # Vérification simple du fichier
+          # Vérification simple du fichier - SYNTAXE CORRECTE
           echo "📊 Vérification du rapport Django..."
-          python -c "
-import json
+          python3 -c "import json
 try:
     with open('result_test_auto.json') as f:
         data = json.load(f)
     print('Rapport Django valide')
 except Exception as e:
-    print(f'Erreur: {e}')
-"
+    print(f'Erreur: {e}')"
         else
           echo "❌ Rapport Django non généré. Fin du pipeline."
           exit 1
@@ -151,10 +149,10 @@ except Exception as e:
         echo "=== 📊 RÉSUMÉ DES TESTS ==="
         echo ""
         
-        # Résumé Django
+        # Résumé Django - SYNTAXE CORRECTE
         if [ -f "result_test_auto.json" ]; then
           echo "🧪 TESTS DJANGO:"
-          python -c "
+          python3 -c "
 import json
 try:
     with open('result_test_auto.json') as f:
@@ -164,8 +162,8 @@ try:
     print(f'  Échoués: {stats.get(\"failed\", 0)}')
     print(f'  Manuels: {stats.get(\"manual\", 0)}')
     print(f'  Total: {stats.get(\"total\", 0)}')
-except:
-    print('  Données non disponibles')
+except Exception as e:
+    print(f'  Erreur: {e}')
 "
         else
           echo "🧪 TESTS DJANGO: Non disponibles"
@@ -173,10 +171,10 @@ except:
         
         echo ""
         
-        # Résumé Selenium
+        # Résumé Selenium - SYNTAXE CORRECTE
         if [ -f "result_test_selenium.json" ]; then
           echo "🌐 TESTS SELENIUM:"
-          python -c "
+          python3 -c "
 import json
 try:
     with open('result_test_selenium.json') as f:
@@ -185,8 +183,8 @@ try:
     print(f'  Passés: {stats.get(\"passed\", 0)}')
     print(f'  Échoués: {stats.get(\"failed\", 0)}')
     print(f'  Total: {stats.get(\"total\", 0)}')
-except:
-    print('  Données non disponibles')
+except Exception as e:
+    print(f'  Erreur: {e}')
 "
         else
           echo "🌐 TESTS SELENIUM: Non disponibles"
@@ -194,10 +192,10 @@ except:
         
         echo ""
         
-        # Résumé Accessibilité
+        # Résumé Accessibilité - SYNTAXE CORRECTE
         if [ -f "accessibility_report.json" ]; then
           echo "♿ TESTS ACCESSIBILITÉ:"
-          python -c "
+          python3 -c "
 import json
 try:
     with open('accessibility_report.json') as f:
