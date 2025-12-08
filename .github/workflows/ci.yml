@@ -71,6 +71,7 @@ if 'statistics' in data:
             if isinstance(details, dict) and details.get('status') == 'manual':
                 print(f'  - {test_id}: {details.get("note", "")}')
 PYTHON_EOF
+
         else
           echo "❌ Rapport Django non généré"
           exit 1
@@ -95,24 +96,19 @@ PYTHON_EOF
       run: |
         echo "=== TESTS SELENIUM ==="
         
-        echo "📦 Installation de Chrome..."
         sudo apt-get update
         sudo apt-get install -y wget unzip
         
-        # Chrome
         wget -q -O chrome.deb "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
         sudo apt-get install -y ./chrome.deb || sudo apt-get install -f -y
         rm -f chrome.deb
         
-        # ChromeDriver
         CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d'.' -f1)
         wget -q "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}.0.6099.109/linux64/chromedriver-linux64.zip"
         unzip -o chromedriver-linux64.zip
         sudo mv chromedriver-linux64/chromedriver /usr/local/bin/
         sudo chmod +x /usr/local/bin/chromedriver
         rm -rf chromedriver-linux64.zip chromedriver-linux64
-        
-        echo "✅ Chrome et ChromeDriver installés"
         
         echo "🧪 Exécution des tests Selenium..."
         sleep 3
@@ -146,6 +142,7 @@ try:
 except Exception as e:
     print(f'⚠️ Erreur: {e}')
 PYTHON_EOF
+
         else
           echo "⚠️ Aucun rapport Selenium"
         fi
@@ -155,23 +152,16 @@ PYTHON_EOF
       run: |
         echo "=== TESTS D'ACCESSIBILITÉ ==="
         
-        echo "📦 Installation de Node.js..."
         curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
         sudo apt-get install -y nodejs
         
-        echo "📦 Installation de pa11y-ci..."
         sudo npm install -g pa11y-ci@5
-        
-        echo "✅ pa11y-ci installé"
         
         if ! curl -f http://localhost:8000/ > /dev/null 2>&1; then
           echo "❌ Serveur non accessible"
           exit 1
         fi
         
-        echo "🧪 Exécution des tests d'accessibilité..."
-        
-        # Tester uniquement la page d'accueil
         pa11y-ci --json http://localhost:8000/ > accessibility_report.json 2>/dev/null || true
         
         if [ -f "accessibility_report.json" ]; then
@@ -199,6 +189,7 @@ try:
 except Exception as e:
     print(f'⚠️ Erreur: {e}')
 PYTHON_EOF
+
         else
           echo "⚠️ Aucun rapport accessibilité"
         fi
@@ -206,24 +197,16 @@ PYTHON_EOF
     - name: 🛑 Stop Django server
       if: always()
       run: |
-        echo "=== ARRÊT SERVEUR ==="
         if [ -f "django_server.pid" ]; then
           kill $(cat django_server.pid) 2>/dev/null || true
           rm -f django_server.pid
-          echo "✅ Serveur arrêté"
         fi
     
     - name: 📊 Run comprehensive test report script
       id: test-report
       run: |
         echo "=== RAPPORT GLOBAL ==="
-        echo "📋 Exécution de test_report.py..."
-        
-        if pipenv run python test_report.py; then
-          echo "✅ Rapport global généré"
-        else
-          echo "⚠️ Rapport global avec erreurs"
-        fi
+        pipenv run python test_report.py || echo "⚠️ Rapport global avec erreurs"
     
     - name: 📁 Upload test reports
       if: always()
@@ -246,31 +229,16 @@ PYTHON_EOF
           const fs = require('fs');
           
           try {
-            // Lire les rapports
             let djangoData = { statistics: { passed: 0, failed: 0, manual: 0, total: 0 } };
             let seleniumData = { summary: { passed: 0, failed: 0, total: 0 } };
             let accessibilityData = { issues: [] };
             
+            try { djangoData = JSON.parse(fs.readFileSync('result_test_auto.json', 'utf8')); } catch {}
+            try { seleniumData = JSON.parse(fs.readFileSync('result_test_selenium.json', 'utf8')); } catch {}
             try {
-              djangoData = JSON.parse(fs.readFileSync('result_test_auto.json', 'utf8'));
-            } catch (e) {
-              console.log('⚠️ Rapport Django non lisible:', e.message);
-            }
-            
-            try {
-              seleniumData = JSON.parse(fs.readFileSync('result_test_selenium.json', 'utf8'));
-            } catch (e) {
-              console.log('⚠️ Rapport Selenium non lisible:', e.message);
-            }
-            
-            try {
-              const accData = JSON.parse(fs.readFileSync('accessibility_report.json', 'utf8'));
-              if (Array.isArray(accData) && accData.length > 0) {
-                accessibilityData = accData[0];
-              }
-            } catch (e) {
-              console.log('⚠️ Rapport accessibilité non lisible:', e.message);
-            }
+              const acc = JSON.parse(fs.readFileSync('accessibility_report.json', 'utf8'));
+              if (Array.isArray(acc) && acc.length > 0) accessibilityData = acc[0];
+            } catch {}
             
             const django = djangoData.statistics;
             const selenium = seleniumData.summary;
@@ -279,81 +247,28 @@ PYTHON_EOF
             const errors = issues.filter(i => i.type === 'error').length;
             const warnings = issues.filter(i => i.type === 'warning').length;
             
-            // Calcul totaux
             const totalAuto = (django.total - django.manual) + selenium.total;
             const totalPassed = django.passed + selenium.passed;
             const successRate = totalAuto > 0 ? (totalPassed / totalAuto * 100).toFixed(1) : '0';
             
-            // Déterminer l'état global
-            const hasFailedTests = django.failed > 0 || selenium.failed > 0;
-            const hasAccessibilityErrors = errors > 0;
-            const overallStatus = hasFailedTests || hasAccessibilityErrors ? '❌' : '✅';
+            const hasFailed = django.failed > 0 || selenium.failed > 0 || errors > 0;
+            const status = hasFailed ? '❌' : '✅';
             
-            // Créer le commentaire
-            let comment = `## ${overallStatus} Résultats des Tests - PR #${context.issue.number}\n\n`;
-            comment += `**Exécuté le:** ${new Date().toLocaleString('fr-FR')}\n`;
-            comment += `**Branche source:** ${context.payload.pull_request.head.ref}\n`;
-            comment += `**Branche cible:** ${context.payload.pull_request.base.ref}\n\n`;
-            
+            let comment = `## ${status} Résultats des Tests - PR #${context.issue.number}\n\n`;
             comment += `### 🧪 Tests Django\n`;
-            comment += `✅ **Passés:** ${django.passed}\n`;
-            comment += `❌ **Échoués:** ${django.failed}\n`;
-            if (django.manual > 0) comment += `👤 **Manuels:** ${django.manual}\n`;
-            comment += `📋 **Total:** ${django.total}\n\n`;
+            comment += `✔️ Passés: ${django.passed}\n❌ Échoués: ${django.failed}\n`;
+            comment += `👤 Manuels: ${django.manual}\n📋 Total: ${django.total}\n\n`;
             
             comment += `### 🌐 Tests Selenium\n`;
-            comment += `✅ **Passés:** ${selenium.passed}\n`;
-            comment += `❌ **Échoués:** ${selenium.failed}\n`;
-            comment += `📋 **Total:** ${selenium.total}\n\n`;
+            comment += `✔️ Passés: ${selenium.passed}\n❌ Échoués: ${selenium.failed}\n📋 Total: ${selenium.total}\n\n`;
             
-            comment += `### ♿ Tests Accessibilité\n`;
-            comment += `❌ **Erreurs:** ${errors}\n`;
-            comment += `⚠️  **Warnings:** ${warnings}\n`;
-            comment += `📋 **Problèmes:** ${issues.length}\n\n`;
+            comment += `### ♿ Accessibilité\n`;
+            comment += `❌ Erreurs: ${errors}\n⚠️  Warnings: ${warnings}\n📋 Problèmes: ${issues.length}\n\n`;
             
             comment += `### 📈 Résumé Global\n`;
-            comment += `${overallStatus} **Tests automatisés passés:** ${totalPassed}/${totalAuto}\n`;
-            comment += `📊 **Taux de réussite:** ${successRate}%\n\n`;
+            comment += `${status} Tests automatisés passés: ${totalPassed}/${totalAuto}\n`;
+            comment += `📊 Taux de réussite: ${successRate}%\n\n`;
             
-            // Tests manuels
-            if (django.manual > 0) {
-              comment += `### ⚠️ Tests Manuels Restants\n`;
-              comment += `Il reste **${django.manual}** test(s) manuel(s) à réaliser:\n\n`;
-              
-              if (djangoData.tests) {
-                for (const [testId, testData] of Object.entries(djangoData.tests)) {
-                  if (testData.status === 'manual') {
-                    comment += `- **${testId}:** ${testData.note || 'Test manuel requis'}\n`;
-                  }
-                }
-              } else {
-                comment += `- TC022: Test manuel requis\n`;
-                comment += `- TC023: Test visuel requis\n`;
-              }
-              comment += `\n`;
-            }
-            
-            // Avertissements si échecs
-            if (django.failed > 0) {
-              comment += `### 🚨 Tests Django Échoués\n`;
-              comment += `**${django.failed}** test(s) Django ont échoué. Vérifiez les logs pour plus de détails.\n\n`;
-            }
-            
-            if (selenium.failed > 0) {
-              comment += `### 🚨 Tests Selenium Échoués\n`;
-              comment += `**${selenium.failed}** test(s) Selenium ont échoué.\n\n`;
-            }
-            
-            if (errors > 0) {
-              comment += `### 🚨 Erreurs d'Accessibilité\n`;
-              comment += `**${errors}** erreur(s) d'accessibilité détectée(s).\n\n`;
-            }
-            
-            comment += `---\n`;
-            comment += `📁 **Rapports téléchargeables:** [Télécharger les artefacts](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n`;
-            comment += `*Généré automatiquement par GitHub Actions*\n`;
-            
-            // Poster le commentaire
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -361,18 +276,4 @@ PYTHON_EOF
               body: comment
             });
             
-            console.log('✅ Commentaire ajouté à la PR');
-            
-          } catch (error) {
-            console.error('❌ Erreur lors de la création du commentaire:', error);
-            
-            // Message minimal
-            const fallbackComment = `## 🧪 Tests Exécutés\n\nLes tests ont été exécutés pour la PR #${context.issue.number}.\n\n*Rapport détaillé non disponible - voir les logs pour plus d'informations*`;
-            
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: fallbackComment
-            });
-          }
+          } catch {}
