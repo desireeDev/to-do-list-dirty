@@ -466,11 +466,17 @@ jobs:
       with:
         python-version: '3.13'
 
-    - name: 📦 Install dependencies
+    - name: 📦 Install pipenv
       run: |
+        python -m pip install --upgrade pip
         pip install pipenv
-        # Installation de reportlab pour la génération PDF
-        pip install reportlab
+
+    - name: 📦 Install dependencies with pipenv
+      run: |
+        # Installer reportlab dans l'environnement pipenv
+        pipenv install reportlab
+        # Vérifier l'installation
+        echo "✅ ReportLab installé avec pipenv"
 
     - name: 📥 Download test reports
       uses: actions/download-artifact@v4
@@ -491,28 +497,44 @@ jobs:
         fi
 
         echo "📋 Votre script generate_pdf_report.py existe"
-        echo "🚀 Exécution du script..."
+        echo "🔧 Vérification des dépendances..."
 
-        # Exécuter votre script
-        python generate_pdf_report.py
+        # Vérifier si reportlab est accessible
+        pipenv run python -c "import reportlab; print('✅ ReportLab importé avec succès')" || {
+          echo "❌ ReportLab non accessible depuis pipenv"
+          echo "📦 Liste des paquets pipenv:"
+          pipenv run pip list
+          exit 1
+        }
+
+        echo "🚀 Exécution du script avec pipenv..."
+
+        # Exécuter votre script AVEC PIPENV
+        pipenv run python generate_pdf_report.py
 
         # Vérifier que le PDF a été créé
         if [ -f "test_delivery_certificate.pdf" ]; then
           echo "✅ PDF généré avec succès: test_delivery_certificate.pdf"
-          ls -la test_delivery_certificate.pdf
+          echo "📏 Informations sur le fichier:"
+          ls -lh test_delivery_certificate.pdf
+          echo "📄 Type de fichier:"
+          file test_delivery_certificate.pdf
         else
-          echo "⚠️ Avertissement: Le PDF n'a pas été généré avec le nom attendu"
-          # Chercher d'autres noms possibles
+          echo "❌ ERREUR: Aucun PDF généré avec le nom 'test_delivery_certificate.pdf'"
+          echo "🔍 Recherche d'autres fichiers PDF..."
           PDF_FILES=$(find . -name "*.pdf" -type f)
           if [ -n "$PDF_FILES" ]; then
             echo "📄 Fichiers PDF trouvés:"
             echo "$PDF_FILES"
-            # Renommer le premier PDF trouvé
+            # Prendre le premier PDF et le renommer
             FIRST_PDF=$(echo "$PDF_FILES" | head -1)
+            echo "📋 Renommage de $FIRST_PDF vers test_delivery_certificate.pdf"
             cp "$FIRST_PDF" test_delivery_certificate.pdf
             echo "✅ Fichier copié vers test_delivery_certificate.pdf"
           else
-            echo "❌ Aucun fichier PDF généré"
+            echo "❌ Aucun fichier PDF généré du tout"
+            echo "📁 Liste des fichiers dans le répertoire:"
+            ls -la
             exit 1
           fi
         fi
