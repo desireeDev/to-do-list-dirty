@@ -1,4 +1,4 @@
-name: CI Pipeline - Exercice 2
+name: CI Pipeline - Exercice 2 & 3
 
 on:
   push:
@@ -6,11 +6,97 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
 jobs:
+  # ==================== ALERTE DÉMARRAGE ====================
+  send-start-notification:
+    runs-on: ubuntu-latest
+    name: 📢 Alerte Démarrage CI
+    timeout-minutes: 1
+
+    steps:
+    - name: 🚀 Envoyer alerte de démarrage (Discord)
+      run: |
+        # Variables
+        REPO_NAME="${{ github.repository }}"
+        REPO_URL="https://github.com/${{ github.repository }}"
+        BRANCH="${{ github.ref_name }}"
+        COMMIT_SHA="${{ github.sha }}"
+        COMMIT_SHORT="${COMMIT_SHA:0:7}"
+        AUTHOR="${{ github.actor }}"
+        EVENT_TYPE="${{ github.event_name }}"
+        WORKFLOW_NAME="${{ github.workflow }}"
+
+        # Message Discord (embed format)
+        EMBED_JSON='{
+          "username": "Elixir bot",
+          "avatar_url": "https://cdn-icons-png.flaticon.com/512/4715/4715329.png",
+          "embeds": [
+            {
+              "title": "🚀 Démarrage de la CI",
+              "description": "**todo-list-app-test**",
+              "color": 3447003,
+              "fields": [
+                {
+                  "name": "📦 Projet",
+                  "value": "['$REPO_NAME']('$REPO_URL')",
+                  "inline": true
+                },
+                {
+                  "name": "🌿 Branche",
+                  "value": "`'$BRANCH'`",
+                  "inline": true
+                },
+                {
+                  "name": "👤 Déclenché par",
+                  "value": "`'$AUTHOR'`",
+                  "inline": true
+                },
+                {
+                  "name": "🔧 Type",
+                  "value": "`'$EVENT_TYPE'`",
+                  "inline": true
+                },
+                {
+                  "name": "📌 Commit",
+                  "value": "[`'$COMMIT_SHORT'`]('$REPO_URL'/commit/'$COMMIT_SHA')",
+                  "inline": true
+                },
+                {
+                  "name": "⚙️ Workflow",
+                  "value": "`'$WORKFLOW_NAME'`",
+                  "inline": true
+                }
+              ],
+              "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+              "footer": {
+                "text": "GitHub Actions CI • En cours d'exécution..."
+              }
+            }
+          ]
+        }'
+
+        # Envoyer à Discord
+        if [ -n "$DISCORD_WEBHOOK" ]; then
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            --data "$EMBED_JSON" \
+            "$DISCORD_WEBHOOK" || echo "⚠️ Erreur lors de l'envoi à Discord"
+          echo "✅ Alerte de démarrage envoyée à Discord"
+        else
+          echo "⚠️ URL Discord non configurée. Ajoutez DISCORD_WEBHOOK_URL aux secrets GitHub"
+          echo "Message qui aurait été envoyé :"
+          echo "$EMBED_JSON" | python3 -m json.tool
+        fi
+
+  # ==================== TESTS EXISTANTS ====================
   setup-and-lint:
     runs-on: ubuntu-latest
     name: ⚙️ Setup & Lint
     timeout-minutes: 5
+    needs: send-start-notification
 
     steps:
     - name: 📥 Checkout code
@@ -358,3 +444,246 @@ jobs:
           });
 
           console.log('✅ Commentaire ajouté avec le résultat du script test_report.py');
+
+  # ==================== ALERTE FINALE ====================
+  send-final-notification:
+    runs-on: ubuntu-latest
+    name: 📢 Alerte Résultat CI
+    needs:
+      - setup-and-lint
+      - django-tests
+      - selenium-tests
+      - accessibility-tests
+      - test-report
+      - comment-on-pr
+    if: always()
+
+    steps:
+    - name: 📊 Collecter les résultats
+      id: results
+      run: |
+        # Définir les résultats manuellement - méthode simple
+        # On vérifie les résultats des jobs un par un
+        echo "=== COLLECTE DES RÉSULTATS ==="
+
+        # Initialiser les compteurs
+        SUCCESS_COUNT=0
+        FAILURE_COUNT=0
+        CANCELLED_COUNT=0
+        SKIPPED_COUNT=0
+
+        # Job 1: setup-and-lint
+        if [[ "${{ needs.setup-and-lint.result }}" == "success" ]]; then
+          SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+          echo "✅ setup-and-lint: success"
+        elif [[ "${{ needs.setup-and-lint.result }}" == "failure" ]]; then
+          FAILURE_COUNT=$((FAILURE_COUNT + 1))
+          echo "❌ setup-and-lint: failure"
+        elif [[ "${{ needs.setup-and-lint.result }}" == "cancelled" ]]; then
+          CANCELLED_COUNT=$((CANCELLED_COUNT + 1))
+          echo "⏹️ setup-and-lint: cancelled"
+        elif [[ "${{ needs.setup-and-lint.result }}" == "skipped" ]]; then
+          SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+          echo "⏭️ setup-and-lint: skipped"
+        fi
+
+        # Job 2: django-tests
+        if [[ "${{ needs.django-tests.result }}" == "success" ]]; then
+          SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+          echo "✅ django-tests: success"
+        elif [[ "${{ needs.django-tests.result }}" == "failure" ]]; then
+          FAILURE_COUNT=$((FAILURE_COUNT + 1))
+          echo "❌ django-tests: failure"
+        elif [[ "${{ needs.django-tests.result }}" == "cancelled" ]]; then
+          CANCELLED_COUNT=$((CANCELLED_COUNT + 1))
+          echo "⏹️ django-tests: cancelled"
+        elif [[ "${{ needs.django-tests.result }}" == "skipped" ]]; then
+          SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+          echo "⏭️ django-tests: skipped"
+        fi
+
+        # Job 3: selenium-tests
+        if [[ "${{ needs.selenium-tests.result }}" == "success" ]]; then
+          SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+          echo "✅ selenium-tests: success"
+        elif [[ "${{ needs.selenium-tests.result }}" == "failure" ]]; then
+          FAILURE_COUNT=$((FAILURE_COUNT + 1))
+          echo "❌ selenium-tests: failure"
+        elif [[ "${{ needs.selenium-tests.result }}" == "cancelled" ]]; then
+          CANCELLED_COUNT=$((CANCELLED_COUNT + 1))
+          echo "⏹️ selenium-tests: cancelled"
+        elif [[ "${{ needs.selenium-tests.result }}" == "skipped" ]]; then
+          SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+          echo "⏭️ selenium-tests: skipped"
+        fi
+
+        # Job 4: accessibility-tests
+        if [[ "${{ needs.accessibility-tests.result }}" == "success" ]]; then
+          SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+          echo "✅ accessibility-tests: success"
+        elif [[ "${{ needs.accessibility-tests.result }}" == "failure" ]]; then
+          FAILURE_COUNT=$((FAILURE_COUNT + 1))
+          echo "❌ accessibility-tests: failure"
+        elif [[ "${{ needs.accessibility-tests.result }}" == "cancelled" ]]; then
+          CANCELLED_COUNT=$((CANCELLED_COUNT + 1))
+          echo "⏹️ accessibility-tests: cancelled"
+        elif [[ "${{ needs.accessibility-tests.result }}" == "skipped" ]]; then
+          SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+          echo "⏭️ accessibility-tests: skipped"
+        fi
+
+        # Job 5: test-report
+        if [[ "${{ needs.test-report.result }}" == "success" ]]; then
+          SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+          echo "✅ test-report: success"
+        elif [[ "${{ needs.test-report.result }}" == "failure" ]]; then
+          FAILURE_COUNT=$((FAILURE_COUNT + 1))
+          echo "❌ test-report: failure"
+        elif [[ "${{ needs.test-report.result }}" == "cancelled" ]]; then
+          CANCELLED_COUNT=$((CANCELLED_COUNT + 1))
+          echo "⏹️ test-report: cancelled"
+        elif [[ "${{ needs.test-report.result }}" == "skipped" ]]; then
+          SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+          echo "⏭️ test-report: skipped"
+        fi
+
+        # Job 6: comment-on-pr
+        if [[ "${{ needs.comment-on-pr.result }}" == "success" ]]; then
+          SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+          echo "✅ comment-on-pr: success"
+        elif [[ "${{ needs.comment-on-pr.result }}" == "failure" ]]; then
+          FAILURE_COUNT=$((FAILURE_COUNT + 1))
+          echo "❌ comment-on-pr: failure"
+        elif [[ "${{ needs.comment-on-pr.result }}" == "cancelled" ]]; then
+          CANCELLED_COUNT=$((CANCELLED_COUNT + 1))
+          echo "⏹️ comment-on-pr: cancelled"
+        elif [[ "${{ needs.comment-on-pr.result }}" == "skipped" ]]; then
+          SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+          echo "⏭️ comment-on-pr: skipped"
+        fi
+
+        TOTAL_JOBS=$((SUCCESS_COUNT + FAILURE_COUNT + CANCELLED_COUNT + SKIPPED_COUNT))
+
+        # Déterminer le statut global
+        if [ $FAILURE_COUNT -gt 0 ]; then
+          GLOBAL_STATUS="ÉCHEC ❌"
+          COLOR=15158332  # Rouge Discord
+          EMOJI="❌"
+          STATUS_TEXT="Des tests ont échoué"
+        elif [ $CANCELLED_COUNT -gt 0 ]; then
+          GLOBAL_STATUS="ANNULÉ ⏹️"
+          COLOR=15844367  # Jaune/Orange
+          EMOJI="⏹️"
+          STATUS_TEXT="Certains jobs ont été annulés"
+        elif [ $SUCCESS_COUNT -eq $TOTAL_JOBS ]; then
+          GLOBAL_STATUS="SUCCÈS ✅"
+          COLOR=3066993   # Vert Discord
+          EMOJI="✅"
+          STATUS_TEXT="Tous les tests ont réussi"
+        else
+          GLOBAL_STATUS="PARTIEL ⚠️"
+          COLOR=15844367  # Jaune/Orange
+          EMOJI="⚠️"
+          STATUS_TEXT="Statut mixte"
+        fi
+
+        # Sauvegarder pour les steps suivants
+        echo "global_status=$GLOBAL_STATUS" >> $GITHUB_OUTPUT
+        echo "status_text=$STATUS_TEXT" >> $GITHUB_OUTPUT
+        echo "color=$COLOR" >> $GITHUB_OUTPUT
+        echo "emoji=$EMOJI" >> $GITHUB_OUTPUT
+        echo "success=$SUCCESS_COUNT" >> $GITHUB_OUTPUT
+        echo "failure=$FAILURE_COUNT" >> $GITHUB_OUTPUT
+        echo "cancelled=$CANCELLED_COUNT" >> $GITHUB_OUTPUT
+        echo "skipped=$SKIPPED_COUNT" >> $GITHUB_OUTPUT
+        echo "total=$TOTAL_JOBS" >> $GITHUB_OUTPUT
+
+        echo "📊 Résumé: ✅ $SUCCESS_COUNT | ❌ $FAILURE_COUNT | ⏹️ $CANCELLED_COUNT | ⏭️ $SKIPPED_COUNT"
+
+    - name: 📨 Envoyer alerte de résultat (Discord)
+      run: |
+        # Variables
+        REPO_NAME="${{ github.repository }}"
+        REPO_URL="https://github.com/${{ github.repository }}"
+        BRANCH="${{ github.ref_name }}"
+        COMMIT_SHA="${{ github.sha }}"
+        COMMIT_SHORT="${COMMIT_SHA:0:7}"
+        WORKFLOW_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        RUN_ID="${{ github.run_id }}"
+
+        # Résultats
+        GLOBAL_STATUS="${{ steps.results.outputs.global_status }}"
+        STATUS_TEXT="${{ steps.results.outputs.status_text }}"
+        COLOR="${{ steps.results.outputs.color }}"
+        EMOJI="${{ steps.results.outputs.emoji }}"
+        SUCCESS="${{ steps.results.outputs.success }}"
+        FAILURE="${{ steps.results.outputs.failure }}"
+        CANCELLED="${{ steps.results.outputs.cancelled }}"
+        SKIPPED="${{ steps.results.outputs.skipped }}"
+        TOTAL="${{ steps.results.outputs.total }}"
+
+        # Durée d'exécution
+        END_TIME="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+        # Message Discord
+        EMBED_JSON='{
+          "username": "Elixir bot",
+          "avatar_url": "https://cdn-icons-png.flaticon.com/512/4715/4715329.png",
+          "embeds": [
+            {
+              "title": "'$EMOJI' CI Terminée: '$GLOBAL_STATUS'",
+              "description": "**todo-list-app-test**\n'$STATUS_TEXT'",
+              "color": '$COLOR',
+              "fields": [
+                {
+                  "name": "📊 Résumé des Jobs",
+                  "value": "```diff\n+'$SUCCESS' ✅ réussis\n-'$FAILURE' ❌ échecs\n'$CANCELLED' ⏹️ annulés\n'$SKIPPED' ⏭️ ignorés\n---\nTotal: '$TOTAL' jobs```",
+                  "inline": false
+                },
+                {
+                  "name": "📦 Projet",
+                  "value": "['$REPO_NAME']('$REPO_URL')",
+                  "inline": true
+                },
+                {
+                  "name": "🌿 Branche",
+                  "value": "`'$BRANCH'`",
+                  "inline": true
+                },
+                {
+                  "name": "🆔 Run ID",
+                  "value": "`#'$RUN_ID'`",
+                  "inline": true
+                },
+                {
+                  "name": "📌 Dernier Commit",
+                  "value": "[`'$COMMIT_SHORT'`]('$REPO_URL'/commit/'$COMMIT_SHA')",
+                  "inline": false
+                }
+              ],
+              "timestamp": "'$END_TIME'",
+              "footer": {
+                "text": "Cliquez pour voir les détails",
+                "icon_url": "https://github.githubassets.com/favicons/favicon.png"
+              },
+              "url": "'$WORKFLOW_URL'"
+            }
+          ]
+        }'
+
+        # Envoyer à Discord
+        if [ -n "$DISCORD_WEBHOOK" ]; then
+          echo "Envoi de l'alerte finale à Discord..."
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            --data "$EMBED_JSON" \
+            "$DISCORD_WEBHOOK" && echo "✅ Alerte de résultat envoyée à Discord" || echo "⚠️ Erreur lors de l'envoi à Discord"
+        else
+          echo "⚠️ URL Discord non configurée. Pour activer les alertes Discord:"
+          echo "1. Créez un webhook dans Discord"
+          echo "2. Ajoutez-le aux secrets GitHub: Settings → Secrets → DISCORD_WEBHOOK_URL"
+          echo "3. Redémarrez ce workflow"
+          echo ""
+          echo "Message qui aurait été envoyé :"
+          echo "$EMBED_JSON" | python3 -m json.tool
+        fi
