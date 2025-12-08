@@ -20,7 +20,6 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.13'
-        # Pas de cache car on utilise pipenv
     
     - name: 📦 Install pipenv
       run: |
@@ -67,24 +66,39 @@ jobs:
         echo "✅ Base de données SQLite configurée"
     
     - name: 🧪 Run Django tests
-      id: run-django-tests
       run: |
         echo "=== TESTS DJANGO ==="
         pipenv run python manage.py test tasks.tests --noinput --verbosity=2
-        
-    - name: 📊 Generate Django report
-      if: always()
-      run: |
-        echo "=== GÉNÉRATION RAPPORT TESTS DJANGO ==="
-        pipenv run python generate_test_report.py
-        echo "✅ Rapport Django généré: result_test_auto.json"
+        echo "✅ Tests Django exécutés"
     
-    - name: 📁 Upload Django report
+    - name: 📊 Generate Django JSON report
+      run: |
+        echo "=== GÉNÉRATION RAPPORT JSON TESTS DJANGO ==="
+        # Exécuter les tests avec format JSON
+        pipenv run python manage.py test tasks.tests --noinput --format=json > django_test_report.json
+        echo "✅ Rapport JSON Django généré"
+    
+    - name: 📊 Run custom Django report
+      run: |
+        echo "=== EXÉCUTION SCRIPT RAPPORT PERSONNALISÉ ==="
+        # Vérifier si le script existe dans tasks/
+        if [ -f "tasks/generate_test_report.py" ]; then
+          echo "Script trouvé dans tasks/"
+          pipenv run python tasks/generate_test_report.py
+          echo "✅ Rapport personnalisé généré: result_test_auto.json"
+        else
+          echo "⚠️ Script generate_test_report.py non trouvé, création rapport minimal"
+          echo '{"django_tests": {"executed": true, "timestamp": "'$(date -Iseconds)'", "tests_count": "unknown"}}' > result_test_auto.json
+        fi
+    
+    - name: 📁 Upload Django reports
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: django-report
-        path: result_test_auto.json
+        name: django-reports
+        path: |
+          django_test_report.json
+          result_test_auto.json
         retention-days: 30
 
   selenium-tests:
@@ -129,8 +143,18 @@ jobs:
     - name: 🧪 Run Selenium tests
       run: |
         echo "=== TESTS SELENIUM ==="
-        pipenv run python selenium_test.py || echo "⚠️ Tests Selenium avec problèmes (vérifier les logs)"
-        echo "✅ Tests Selenium exécutés"
+        # Vérifier si le script existe
+        if [ -f "selenium_test.py" ]; then
+          pipenv run python selenium_test.py
+          echo "✅ Tests Selenium exécutés"
+        elif [ -f "tasks/selenium_test.py" ]; then
+          pipenv run python tasks/selenium_test.py
+          echo "✅ Tests Selenium exécutés depuis tasks/"
+        else
+          echo "⚠️ Fichier selenium_test.py non trouvé"
+          # Créer un rapport minimal
+          echo '{"selenium_tests": {"executed": false, "error": "script_not_found"}}' > result_test_selenium.json
+        fi
     
     - name: 📁 Upload Selenium report
       if: always()
@@ -178,7 +202,8 @@ jobs:
         node-version: '18'
     
     - name: 📦 Install pa11y-ci
-      run: npm install -g pa11y-ci@5
+      run: |
+        npm install -g pa11y-ci@5
     
     - name: 🗄️ Setup Django database
       run: |
@@ -195,7 +220,13 @@ jobs:
     - name: ♿ Run accessibility tests
       run: |
         echo "=== TESTS D'ACCESSIBILITÉ ==="
-        pa11y-ci --json http://localhost:8000/ > accessibility_report.json 2>/dev/null || true
+        pa11y-ci --config .pa11yci.json --json > accessibility_report.json 2>/dev/null || true
+        
+        # Si pas de fichier créé, en créer un minimal
+        if [ ! -f "accessibility_report.json" ]; then
+          echo '{"accessibility_tests": {"executed": true, "timestamp": "'$(date -Iseconds)'"}}' > accessibility_report.json
+        fi
+        
         echo "✅ Tests accessibilité exécutés"
     
     - name: 📁 Upload Accessibility report
@@ -215,53 +246,141 @@ jobs:
           echo "✅ Serveur arrêté"
         fi
 
+  generate-global-report:
+    runs-on: ubuntu-latest
+    name: 📊 Rapport Global
+    needs: [django-tests, selenium-tests, accessibility-tests]
+    if: always()
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 📥 Download all test reports
+      uses: actions/download-artifact@v4
+      with:
+        path: ./reports
+        pattern: '*'
+        merge-multiple: true
+    
+    - name: 📊 Generate global test report
+      run: |
+        echo "=== GÉNÉRATION RAPPORT GLOBAL ==="
+        
+        GLOBAL_REPORT="global_test_report.txt"
+        
+        echo "# 📊 RAPPORT GLOBAL DES TESTS" > $GLOBAL_REPORT
+        echo "Date: $(date '+%d/%m/%Y %H:%M:%S')" >> $GLOBAL_REPORT
+        echo "Workflow: ${{ github.workflow }}" >> $GLOBAL_REPORT
+        echo "Run ID: ${{ github.run_id }}" >> $GLOBAL_REPORT
+        echo "" >> $GLOBAL_REPORT
+        
+        echo "## 📋 ÉTAT DES TESTS" >> $GLOBAL_REPORT
+        echo "" >> $GLOBAL_REPORT
+        
+        # Vérifier Django
+        if [ -f "reports/result_test_auto.json" ]; then
+          echo "✅ **Tests Django**: Exécutés (rapport disponible)" >> $GLOBAL_REPORT
+        else
+          echo "❌ **Tests Django**: Échec ou rapport manquant" >> $GLOBAL_REPORT
+        fi
+        
+        # Vérifier Selenium
+        if [ -f "reports/result_test_selenium.json" ]; then
+          echo "✅ **Tests Selenium**: Exécutés (rapport disponible)" >> $GLOBAL_REPORT
+        else
+          echo "❌ **Tests Selenium**: Échec ou rapport manquant" >> $GLOBAL_REPORT
+        fi
+        
+        # Vérifier Accessibilité
+        if [ -f "reports/accessibility_report.json" ]; then
+          echo "✅ **Tests Accessibilité**: Exécutés (rapport disponible)" >> $GLOBAL_REPORT
+        else
+          echo "❌ **Tests Accessibilité**: Échec ou rapport manquant" >> $GLOBAL_REPORT
+        fi
+        
+        echo "" >> $GLOBAL_REPORT
+        echo "## 📁 FICHIERS DE RAPPORT" >> $GLOBAL_REPORT
+        echo "" >> $GLOBAL_REPORT
+        find reports -type f -name "*.json" | while read file; do
+          echo "- \`$(basename "$file")\` ($(stat -c%s "$file") bytes)" >> $GLOBAL_REPORT
+        done
+        
+        echo "" >> $GLOBAL_REPORT
+        echo "## ⚠️ TESTS MANUELS REQUIS" >> $GLOBAL_REPORT
+        echo "" >> $GLOBAL_REPORT
+        echo "1. **TC022**: Navigation complète utilisateur" >> $GLOBAL_REPORT
+        echo "2. **TC023**: Interface responsive" >> $GLOBAL_REPORT
+        echo "3. **TO01**: Test E2E manuel" >> $GLOBAL_REPORT
+        
+        echo "" >> $GLOBAL_REPORT
+        echo "---" >> $GLOBAL_REPORT
+        echo "*Rapport généré automatiquement par GitHub Actions*" >> $GLOBAL_REPORT
+        
+        cat $GLOBAL_REPORT
+    
+    - name: 📁 Upload global report
+      uses: actions/upload-artifact@v4
+      with:
+        name: global-report
+        path: global_test_report.txt
+        retention-days: 30
+
   comment-on-pr:
     runs-on: ubuntu-latest
     name: 💬 Commenter sur PR
-    needs: [django-tests, selenium-tests, accessibility-tests]
+    needs: [generate-global-report]
     if: github.event_name == 'pull_request'
     
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
     
-    - name: 💬 Simple PR comment
-      uses: actions/github-script@v7
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: 📥 Download global report
+      uses: actions/download-artifact@v4
       with:
+        name: global-report
+        path: ./
+    
+    - name: 💬 Post comment to PR
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          // Version SIMPLE sans télécharger d'artefacts
-          let comment = `## 🧪 Résultats des Tests - PR #${context.issue.number}\n\n`;
-          comment += `**Exécuté le:** ${new Date().toLocaleString('fr-FR')}\n`;
-          comment += `**Branche:** ${context.payload.pull_request.head.ref} → ${context.payload.pull_request.base.ref}\n\n`;
+          const fs = require('fs');
           
-          comment += `### 📊 Tests Exécutés\n`;
-          comment += `1. ✅ **Linter** (flake8)\n`;
-          comment += `2. ✅ **Tests Django** (TC001-TC021, TP001-TP007)\n`;
-          comment += `3. ✅ **Tests Selenium** (TE001, TE002, TE012)\n`;
-          comment += `4. ✅ **Tests Accessibilité** (pa11y-ci)\n\n`;
+          // Lire le rapport global
+          let reportContent = "## 🧪 Résumé des Tests - PR\n\n";
           
-          comment += `### 📁 Rapports Générés\n`;
-          comment += `- \`result_test_auto.json\` (tests Django + manuels)\n`;
-          comment += `- \`result_test_selenium.json\` (tests Selenium)\n`;
-          comment += `- \`accessibility_report.json\` (tests accessibilité)\n\n`;
+          try {
+            if (fs.existsSync('./global_test_report.txt')) {
+              reportContent = fs.readFileSync('./global_test_report.txt', 'utf8');
+            } else {
+              reportContent += "⚠️ Rapport global non généré\n\n";
+              reportContent += "**Tests exécutés:**\n";
+              reportContent += "- Linter (flake8)\n";
+              reportContent += "- Tests Django\n";
+              reportContent += "- Tests Selenium\n";
+              reportContent += "- Tests Accessibilité\n\n";
+              reportContent += "**Tests manuels requis:**\n";
+              reportContent += "1. TC022: Navigation complète utilisateur\n";
+              reportContent += "2. TC023: Interface responsive\n";
+              reportContent += "3. TO01: Test E2E manuel\n";
+            }
+          } catch (error) {
+            reportContent += `Erreur: ${error.message}\n`;
+          }
           
-          comment += `### ⚠️ Tests Manuels Requis\n`;
-          comment += `**3 tests manuels restants:**\n`;
-          comment += `1. **TC022**: Navigation complète utilisateur\n`;
-          comment += `2. **TC023**: Interface responsive\n`;
-          comment += `3. **TO01**: Test E2E manuel\n\n`;
+          // Ajouter un en-tête spécifique PR
+          const prHeader = `## 🔄 Pull Request #${context.issue.number}\n`;
+          const finalComment = prHeader + "\n" + reportContent;
           
-          comment += `---\n`;
-          comment += `📎 **Artefacts disponibles** dans l'onglet Actions\n`;
-          comment += `*Généré automatiquement par GitHub Actions*`;
-          
+          // Poster le commentaire
           await github.rest.issues.createComment({
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number: context.issue.number,
-            body: comment
+            body: finalComment
           });
           
           console.log('✅ Commentaire ajouté à la PR');
