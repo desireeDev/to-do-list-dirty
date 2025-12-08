@@ -204,7 +204,7 @@ jobs:
     
     - name: 📦 Install pa11y-ci
       run: |
-        npm install -g pa11y-ci@5
+         npm install -g pa11y-ci
     
     - name: 🗄️ Setup Django database
       run: |
