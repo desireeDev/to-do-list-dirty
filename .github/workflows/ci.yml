@@ -51,7 +51,7 @@ jobs:
         if [ -f "result_test_auto.json" ]; then
           echo "✅ Rapport Django généré: result_test_auto.json"
           
-          pipenv run python -c "
+           pipenv run python << 'EOF
 import json
 
 with open('result_test_auto.json') as f:
