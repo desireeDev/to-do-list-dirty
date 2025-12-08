@@ -34,7 +34,7 @@
 | Suppression | Priorité des tâches | Tests Selenium |
 |-------------|---------------------|----------------|
 | ![Suppression](images/V3.png) | ![Priorité](images/PRIO.png) |
-
+Quelques captures du projet
 ---
 
 ## ✨ Fonctionnalités
